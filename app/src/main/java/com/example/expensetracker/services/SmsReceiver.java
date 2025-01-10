@@ -53,7 +53,7 @@ public class SmsReceiver extends BroadcastReceiver {
                         null
                 );
 
-                repository.addRecord(record);
+                repository.addTransaction(record, matcher.group(6), (matcher.group(1).length() == 4) ? "X" + matcher.group(1) : "XX" + matcher.group(1));
                 Log.d(TAG, "onReceive: " + message.getMessageBody());
             }
 
@@ -63,7 +63,7 @@ public class SmsReceiver extends BroadcastReceiver {
 
     private String parseDate(String s){
         /*
-        Possible formats:
+        Possible formats (input):
         DD-MM-YYYY
         DD-Short name of month-YYYY
         DDShort name of the monthYYYY (Note there are no spaces)
@@ -81,11 +81,10 @@ public class SmsReceiver extends BroadcastReceiver {
         else {
             // No '-'s
             String year = s.substring(5);
-            if (s.length() == 2) s = "20" + s.substring(5);
-            if (s.substring(5).length() == 2) s = s.substring(0, 5) + year;
-            date = s.substring(5) +"-"+ getMonth(s.substring(2, 5)) +"-"+ s.substring(0, 2);
+            if (year.length() == 2) year = "20" + year;
+            date = year +"-"+ getMonth(s.substring(2, 5)) +"-"+ s.substring(0, 2);
         }
-        
+
         return date;
     }
 

@@ -38,6 +38,12 @@ public class BudgetDB extends SQLiteOpenHelper {
     public static final String RECORDS_DESCRIPTION = "description";
     public static final String RECORDS_CATEGORY_ID = "category_id";
 
+    public static final String TABLE_MAPPINGS = "mappings";
+    public static final String MAPPINGS_ID = "id";
+    public static final String MAPPINGS_PARTY_ID = "party_id";
+    public static final String MAPPINGS_AMOUNT = "amount";
+    public static final String MAPPINGS_CATEGORY_ID = "category_id";
+
 
     public BudgetDB(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -66,7 +72,7 @@ public class BudgetDB extends SQLiteOpenHelper {
         String qry3 = "CREATE TABLE " + TABLE_PARTY + " (" +
                 PARTIES_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
                 PARTIES_NAME + " TEXT NOT NULL CHECK (LENGTH(" + PARTIES_NAME + ") <= 50) CHECK (" + PARTIES_NAME + " NOT LIKE '%\n%')," +
-                PARTIES_NICKNAME + " TEXT NOT NULL CHECK (LENGTH(" + PARTIES_NICKNAME + ") <= 50) CHECK (" + PARTIES_NICKNAME + " NOT LIKE '%\\n%'))";
+                PARTIES_NICKNAME + " TEXT UNIQUE NOT NULL CHECK (LENGTH(" + PARTIES_NICKNAME + ") <= 50) CHECK (" + PARTIES_NICKNAME + " NOT LIKE '%\\n%'))";
 
         String qry4 = "CREATE TABLE " + TABLE_RECORDS + " (" +
                 RECORDS_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
@@ -85,13 +91,24 @@ public class BudgetDB extends SQLiteOpenHelper {
                 "FOREIGN KEY (" + RECORDS_PARTY_ID + ") REFERENCES " + TABLE_PARTY + "(" + PARTIES_ID + ") " +
                 "ON UPDATE CASCADE ON DELETE SET NULL )";
 
-        // TODO: Add triggers for date and time to validate them
+        String qry5 = "CREATE TABLE " + TABLE_MAPPINGS + "(" +
+                MAPPINGS_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                MAPPINGS_PARTY_ID + " INTEGER," +
+                MAPPINGS_AMOUNT + " REAL," +
+                MAPPINGS_CATEGORY_ID + " INTEGER," +
+                "FOREIGN KEY (" + MAPPINGS_PARTY_ID + ") REFERENCES " + TABLE_PARTY + "(" + PARTIES_ID + ") " +
+                "ON UPDATE CASCADE ON DELETE CASCADE," +
+                "FOREIGN KEY (" + MAPPINGS_CATEGORY_ID + ") REFERENCES " + TABLE_CATEGORIES + "(" + CATEGORIES_ID + ") " +
+                "ON UPDATE CASCADE ON DELETE CASCADE, " +
+                "CONSTRAINT unique_mapping UNIQUE (" + MAPPINGS_PARTY_ID + ", " + MAPPINGS_AMOUNT + "))";
+
 
         try {
             db.execSQL(qry1);
             db.execSQL(qry2);
             db.execSQL(qry3);
             db.execSQL(qry4);
+            db.execSQL(qry5);
         }
         catch (SQLException e){
             Log.d(TAG, "onCreate: " + e.getMessage());
@@ -124,30 +141,34 @@ public class BudgetDB extends SQLiteOpenHelper {
         }
     }
 
-    public void insertCategory(Category category){
+    public long insertCategory(Category category){
         ContentValues values = new ContentValues();
         values.put(CATEGORIES_NAME, category.getName());
         values.put(CATEGORIES_PARENT_ID, category.getParent_id());
+        long result = -1;
 
         try {
-            SQLiteDatabase db = this.getWritableDatabase();
-            long result = db.insert(TABLE_CATEGORIES, null, values);
+            SQLiteDatabase db = getWritableDatabase();
+            result = db.insert(TABLE_CATEGORIES, null, values);
             if (result == -1) Log.d(TAG, "insertCategory: " + result + " a.k.a insertion failed");
             db.close();
         }
         catch (SQLException e){
             Log.d(TAG, "insertCategory: " + e.getMessage());
         }
+
+        return result;
     }
 
-    public void insertParty(Party party){
+    public long insertParty(Party party){
         ContentValues values = new ContentValues();
         values.put(PARTIES_NAME, party.getName());
         values.put(PARTIES_NICKNAME, party.getNickname());
+        long result = -1;
 
         try {
             SQLiteDatabase db = getWritableDatabase();
-            long result = db.insert(TABLE_PARTY, null, values);
+            result = db.insert(TABLE_PARTY, null, values);
             if (result == -1) Log.d(TAG, "insertParty: " + result + " a.k.a insertion failed");
             db.close();
         }
@@ -155,6 +176,7 @@ public class BudgetDB extends SQLiteOpenHelper {
             Log.d(TAG, "insertParty: " + e.getMessage());
         }
 
+        return result;
     }
 
     public void insertRecord(Record record){
@@ -298,6 +320,30 @@ public class BudgetDB extends SQLiteOpenHelper {
                     RECORDS_ID + " = ?",
                     new String[]{String.valueOf(record.getId())});
             if (result == -1) Log.d(TAG, "updateRecord: " + result + " a.k.a update failed");
+
+            Cursor cursor1 = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_RECORDS + " WHERE " +
+                    RECORDS_PARTY_ID + " = ? AND " + RECORDS_AMOUNT + " = ?", new String[]{String.valueOf(record.getParty()), String.valueOf(record.getAmount())});
+            Cursor cursor2 = db.rawQuery("SELECT * FROM " + TABLE_MAPPINGS +
+                    " WHERE " + MAPPINGS_PARTY_ID + " = ? AND " + MAPPINGS_AMOUNT + " = ?",
+                    new String[]{String.valueOf(record.getParty()), String.valueOf(record.getAmount())});
+
+            if (cursor1 != null && cursor1.moveToFirst()){
+                int recordCount = cursor1.getInt(0);
+
+                if (cursor2 != null && cursor2.moveToFirst()){
+                    if (recordCount >= 3) {
+                        updateMapping(new Mapping(cursor2.getLong(0), cursor2.getLong(1), cursor2.getDouble(2), record.getCategory_id()));
+                    }
+                }
+                else if (recordCount >= 3){
+                    Log.d(TAG, "recordCount >= 3");
+                    insertMapping(new Mapping(record.getParty(), record.getAmount(), record.getCategory_id()));
+                }
+            }
+
+            if (cursor2 != null) cursor2.close();
+            if (cursor1 != null)cursor1.close();
+
             db.close();
         }
         catch (SQLException e){
@@ -306,17 +352,13 @@ public class BudgetDB extends SQLiteOpenHelper {
     }
 
     public long getPartyId(String name){
+        long result = -1;
         try {
             SQLiteDatabase db = getWritableDatabase();
             Cursor cursor = db.rawQuery("SELECT " + PARTIES_ID + " FROM " + TABLE_PARTY + " WHERE " + PARTIES_NAME + " = ?", new String[]{name});
             if (cursor != null && cursor.moveToFirst()){
-                int res = cursor.getColumnIndex(PARTIES_ID);
-                if (res == -1) res = 0;
-                long id = cursor.getLong(res);
-
-                // The above check is not really necessary tho
-
-                if (id >= 0) return id;
+                int id = cursor.getColumnIndex(PARTIES_ID);
+                if (id != -1) result = cursor.getLong(id);
 
             }
             db.close();
@@ -325,8 +367,122 @@ public class BudgetDB extends SQLiteOpenHelper {
             Log.d(TAG, "getPartyId: " + e.getMessage());
         }
 
-        return 0;
+        return result;
     }
 
+    boolean searchAccount(String accountNo){
+        boolean result = false;
+        try{
+            SQLiteDatabase db = getReadableDatabase();
+            Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_ACCOUNTS + " WHERE " + ACCOUNT_ACCOUNT + " = ?", new String[]{accountNo});
+            result = cursor.moveToFirst();
+            cursor.close();
+        }
+        catch (SQLException e){
+            Log.d(TAG, "searchParty: " + e.getMessage());
+        }
+
+        return result;
+    }
+
+    public void addTransaction(Record record, String partyName, String accountNo){
+        long temp = getPartyId(partyName);
+        record.setParty((temp == -1) ? insertParty(new Party(partyName, partyName)) : temp);
+
+        if (!searchAccount(accountNo)) insertAccount(new Account(accountNo));
+        record.setAccount_no(accountNo);
+        Long id = getCategoryUsingMapping(record.getParty(), record.getAmount());
+
+        if (record.getCategory_id() == null) record.setCategory_id(id);
+
+        insertRecord(record);
+    }
+
+    public void insertMapping(Mapping mapping) throws SQLException {
+        ContentValues values = new ContentValues();
+        values.put(MAPPINGS_PARTY_ID, mapping.getParty_id());
+        values.put(MAPPINGS_AMOUNT, mapping.getAmount());
+        values.put(MAPPINGS_CATEGORY_ID, mapping.getCategory_id());
+
+        SQLiteDatabase db = getWritableDatabase();
+
+        long result = db.insert(TABLE_MAPPINGS, null, values);
+        Log.d(TAG, "addMapping: " + result);
+
+        if (result == -1) throw new SQLException("Insertion failed. Duplicate row or constraint issue.");
+        db.close();
+    }
+
+    public void deleteMapping(long id){
+        try{
+            SQLiteDatabase db = getWritableDatabase();
+            db.delete(TABLE_MAPPINGS, MAPPINGS_ID + " = ?", new String[]{String.valueOf(id)});
+            db.close();
+        }
+        catch (SQLException e){
+            Log.d(TAG, "deleteMapping: " + e.getMessage());
+        }
+    }
+
+    public void updateMapping(Mapping mapping){
+        ContentValues values = new ContentValues();
+        values.put(MAPPINGS_PARTY_ID, mapping.getParty_id());
+        values.put(MAPPINGS_AMOUNT, mapping.getAmount());
+        values.put(MAPPINGS_CATEGORY_ID, mapping.getCategory_id());
+
+        try {
+            SQLiteDatabase db = getWritableDatabase();
+            db.update(TABLE_MAPPINGS, values, MAPPINGS_ID + " = ?", new String[]{String.valueOf(mapping.getId())});
+        }
+        catch (SQLException e){
+            Log.d(TAG, "updateMapping: " + e.getMessage());
+        }
+        Log.d(TAG, "updateMapping: Mappings updated");
+    }
+
+    public Long getCategoryUsingMapping(long partyId, double amount){
+        try {
+            SQLiteDatabase db = getReadableDatabase();
+//            Cursor cursor = db.rawQuery("SELECT " + MAPPINGS_CATEGORY_ID + " FROM " + TABLE_MAPPINGS +
+//                    " WHERE " + MAPPINGS_PARTY_ID + " = ? AND " + MAPPINGS_AMOUNT + " = ?",
+//                    new String[]{String.valueOf(partyId), String.valueOf(amount)});
+
+            Cursor cursor = db.rawQuery("SELECT " + MAPPINGS_CATEGORY_ID + " FROM " + TABLE_MAPPINGS +
+                    " WHERE (" + MAPPINGS_PARTY_ID + " = ? OR " + MAPPINGS_AMOUNT + " IS NULL) " +
+                    "AND (" + MAPPINGS_PARTY_ID + " IS NULL OR " + MAPPINGS_AMOUNT + " = ?) " +
+                    "ORDER BY " +
+                    "CASE " +
+                    "WHEN " + MAPPINGS_PARTY_ID + " IS NOT NULL AND " + MAPPINGS_AMOUNT + " IS NOT NULL THEN 1 " +
+                    "WHEN " + MAPPINGS_PARTY_ID + " IS NOT NULL THEN 2 " +
+                    "WHEN " + MAPPINGS_AMOUNT + " IS NOT NULL THEN 3 " +
+                    "ELSE 4 " +
+                    "END " +
+                    "LIMIT 1", new String[]{String.valueOf(partyId), String.valueOf(amount)});
+
+            if (cursor.moveToFirst()) {
+                Log.d(TAG, "getCategoryUsingMapping: Cursor has no values");
+                return cursor.getLong(0);
+            }
+
+            cursor.close();
+            db.close();
+        }
+        catch (SQLException e){
+            Log.d(TAG, "getCategoryUsingMapping: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    public void test(){
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_RECORDS, null);
+        if (cursor != null && cursor.moveToFirst()) {
+            do {
+                Log.d("DB_TEST", "Row: " + cursor.getString(0)); // Replace index with column indices
+            } while (cursor.moveToNext());
+            cursor.close();
+        }
+    }
 
 }

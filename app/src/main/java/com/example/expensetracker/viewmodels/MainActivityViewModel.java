@@ -53,4 +53,7 @@ public class MainActivityViewModel extends AndroidViewModel {
     public void updateRecord(Record record){
         repository.updateRecord(record);
     }
+    public void addTransaction(Record record, String partyName, String accountNo){
+        repository.addTransaction(record, partyName, accountNo);
+    };
 }

@@ -72,4 +72,8 @@ public class Repository {
         executor.execute(() -> db.updateRecord(record));
     }
 
+    public void addTransaction(Record record, String partyName, String accountNo){
+        executor.execute(() -> db.addTransaction(record, partyName, accountNo));
+    }
+
 }

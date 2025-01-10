@@ -3,6 +3,7 @@ package com.example.expensetracker.views;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.ListView;
 
 import androidx.activity.EdgeToEdge;
@@ -17,7 +18,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.expensetracker.R;
 import com.example.expensetracker.databinding.ActivityMainBinding;
 import com.example.expensetracker.repository.database.Account;
+import com.example.expensetracker.repository.database.BudgetDB;
 import com.example.expensetracker.repository.database.Category;
+import com.example.expensetracker.repository.database.Mapping;
 import com.example.expensetracker.repository.database.Party;
 import com.example.expensetracker.repository.database.Record;
 import com.example.expensetracker.services.SmsWatcher;
@@ -30,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
     ListView listView;
     RecordsAdapter adapter;
     Cursor cursor;
+    private final String TAG = "MainActivity";
 
 
     @Override
@@ -55,13 +59,15 @@ public class MainActivity extends AppCompatActivity {
 
 
 //        viewModel.addAccount(new Account("XX123"));
+//        viewModel.addAccount(new Account("X1234"));
 //        viewModel.addCategory(new Category("Snacks", null));
-//        viewModel.addCategory(new Category("Tea", 1));
+//        viewModel.addCategory(new Category("Coffee", 1));
 //        viewModel.addParty(new Party("Chill guy", "Chill guy (nickname)"));
 //        viewModel.addParty(new Party("Not chill guy", "Not so chill"));
-//        viewModel.addRecord(new Record("X1234", "2024-12-24", "02:00:00", "debited", 1000.00, 1, 1));
-//        viewModel.addRecord(new Record("X1234", "2024-12-24", "03:28:00", "debited", 600.00, null, 1));
-//        viewModel.addRecord(new Record("X1234", "2024-12-24", "03:28:00", "debited", 400.00, 1, null));
+//        viewModel.addRecord(new Record("X1234", "2025-01-10", "02:00:00", "debited", 1000.00, (long) 1, (long) 1));
+//        viewModel.addRecord(new Record("X1234", "2024-12-24", "03:28:00", "debited", 600.00, null, (long) 1));
+//        viewModel.addRecord(new Record("X1234", "2024-12-24", "03:28:00", "debited", 400.00, (long) 1, null));
+
 //        Party party = new Party("Chill guy 2", "NICKNAME");
 //        party.setId(1);
 //        Category category = new Category("Snacks2", null);
@@ -71,6 +77,25 @@ public class MainActivity extends AppCompatActivity {
 //        viewModel.updateParty(party);
 //        viewModel.updateCategory(category);
 //        viewModel.updateRecord(record);
+
+//        viewModel.removeParty(4);
+
+//        viewModel.addTransaction(new Record("X1234", "2025-01-10", "06:03:00", "debited", 20.00, (long) 1, null)
+//            , "Chill guy", "X1234");
+
+        try {
+            BudgetDB db = new BudgetDB(getApplicationContext());
+//            db.insertMapping(new Mapping((long) 1, 20.0, 1));
+            db.addTransaction(new Record("X1234", "2025-01-10", "08:57:00", "debited", 20.00, (long) 1, (long) 2)
+            , "Chill guy", "X1234");
+
+
+        }
+        catch (Exception e){
+            Log.d(TAG, "onCreate: " + e.getMessage());
+        }
+
+
 
     }
 }

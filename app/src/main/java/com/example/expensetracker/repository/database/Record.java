@@ -19,13 +19,13 @@ public class Record {
     @NonNull
     private Double amount;
 
-    private Integer party;
+    private Long party;
 
     private String description;
 
-    private Integer category_id;
+    private Long category_id;
 
-    public Record(String account_no, @NonNull String date, @NonNull String time, @NonNull String operation, @NonNull Double amount, Integer party, Integer category_id) {
+    public Record(String account_no, @NonNull String date, @NonNull String time, @NonNull String operation, @NonNull Double amount, Long party, Long category_id) {
         this.account_no = account_no;
         this.date = date;
         this.time = time;
@@ -87,11 +87,11 @@ public class Record {
         this.amount = amount;
     }
 
-    public Integer getParty() {
+    public Long getParty() {
         return party;
     }
 
-    public void setParty(Integer party) {
+    public void setParty(Long party) {
         this.party = party;
     }
 
@@ -103,11 +103,11 @@ public class Record {
         this.description = description;
     }
 
-    public Integer getCategory_id() {
+    public Long getCategory_id() {
         return category_id;
     }
 
-    public void setCategory_id(Integer category_id) {
+    public void setCategory_id(Long category_id) {
         this.category_id = category_id;
     }
 }
