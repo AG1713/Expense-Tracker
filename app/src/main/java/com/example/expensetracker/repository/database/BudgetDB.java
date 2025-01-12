@@ -211,7 +211,7 @@ public class BudgetDB extends SQLiteOpenHelper {
                     "ON " + TABLE_RECORDS + "." + RECORDS_CATEGORY_ID + " = " + TABLE_CATEGORIES + "." + CATEGORIES_ID + " " +
                     "LEFT JOIN " + TABLE_PARTY + " " +
                     "ON " + TABLE_RECORDS + "." + RECORDS_PARTY_ID + " = " + TABLE_PARTY + "." + PARTIES_ID +
-                    " ORDER BY date DESC",
+                    " ORDER BY date ASC, time DESC",
                     null);
             return cursor;
         }
@@ -472,6 +472,32 @@ public class BudgetDB extends SQLiteOpenHelper {
         }
 
         return null;
+    }
+
+    public Cursor getAllPartiesWithAmounts(){
+        Cursor cursor = null;
+
+        try {
+            SQLiteDatabase db = getReadableDatabase();
+
+            cursor = db.rawQuery(
+                    "SELECT " + TABLE_PARTY + "." + PARTIES_ID + " AS _id," + PARTIES_NAME + "," + PARTIES_NICKNAME + "," +
+                            "SUM(" + RECORDS_AMOUNT + ") AS Total " +
+                            "FROM " + TABLE_PARTY + " " +
+                            "LEFT JOIN " + TABLE_RECORDS + " " +
+                            "ON " + TABLE_PARTY + "." + PARTIES_ID + " = " + TABLE_RECORDS + "." + RECORDS_PARTY_ID + " " +
+                            "GROUP BY " + TABLE_PARTY + "." + PARTIES_ID,
+                    null
+            );
+            Log.d(TAG, "getAllPartiesWithAmounts: " + cursor.getCount());
+
+            db.close();
+        }
+        catch (SQLException e){
+            Log.d(TAG, "getAllPartiesWithAmounts: " + e.getMessage());
+        }
+
+        return cursor;
     }
 
     public void test(){

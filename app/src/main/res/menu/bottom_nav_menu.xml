@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/PartiesAndAccounts"
+        android:icon="@drawable/baseline_pending_24"
+        android:title="Parties and accounts"/>
+    <item
+        android:id="@+id/Categories"
+        android:icon="@drawable/baseline_pending_24"
+        android:title="Categories"/>
+    <item
+        android:id="@+id/Records"
+        android:icon="@drawable/baseline_pending_24"
+        android:title="Records"/>
+    <item
+        android:id="@+id/Goals"
+        android:icon="@drawable/baseline_pending_24"
+        android:title="Goals"/>
+    <item
+        android:id="@+id/Analysis"
+        android:icon="@drawable/baseline_pending_24"
+        android:title="Analysis"/>
+
+</menu>

@@ -45,9 +45,10 @@ dependencies {
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
 
+    // Viewpager2
+    implementation(libs.androidx.viewpager2.viewpager2)
 
-    // ROOM library and annotation processor
-    implementation(libs.room.runtime)
-    annotationProcessor(libs.room.compiler)
+    // SwipeRefreshLayout
+    implementation(libs.androidx.swiperefreshlayout)
 
 }

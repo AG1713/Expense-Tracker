@@ -76,4 +76,8 @@ public class Repository {
         executor.execute(() -> db.addTransaction(record, partyName, accountNo));
     }
 
+    public Cursor getAllPartiesWithAmount(){
+        return db.getAllPartiesWithAmounts();
+    }
+
 }

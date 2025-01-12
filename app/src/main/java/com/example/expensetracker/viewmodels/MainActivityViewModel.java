@@ -56,4 +56,7 @@ public class MainActivityViewModel extends AndroidViewModel {
     public void addTransaction(Record record, String partyName, String accountNo){
         repository.addTransaction(record, partyName, accountNo);
     };
+    public Cursor getALlPartiesWithAmount(){
+        return repository.getAllPartiesWithAmount();
+    }
 }
