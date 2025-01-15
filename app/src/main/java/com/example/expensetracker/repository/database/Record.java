@@ -5,7 +5,7 @@ import androidx.annotation.NonNull;
 public class Record {
     private long id;
 
-    private String account_no;
+    private Long account_id;
 
     @NonNull
     private String date;
@@ -25,8 +25,8 @@ public class Record {
 
     private Long category_id;
 
-    public Record(String account_no, @NonNull String date, @NonNull String time, @NonNull String operation, @NonNull Double amount, Long party, Long category_id) {
-        this.account_no = account_no;
+    public Record(Long account_id, @NonNull String date, @NonNull String time, @NonNull String operation, @NonNull Double amount, Long party, Long category_id) {
+        this.account_id = account_id;
         this.date = date;
         this.time = time;
         this.operation = operation;
@@ -43,12 +43,12 @@ public class Record {
         this.id = id;
     }
 
-    public String getAccount_no() {
-        return account_no;
+    public Long getAccount_id() {
+        return account_id;
     }
 
-    public void setAccount_no(String account_no) {
-        this.account_no = account_no;
+    public void setAccount_id(Long account_id) {
+        this.account_id = account_id;
     }
 
     @NonNull

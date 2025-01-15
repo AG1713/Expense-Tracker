@@ -8,9 +8,9 @@ public class Category {
     @NonNull
     private String name;
 
-    private Integer parent_id;
+    private Long parent_id;
 
-    public Category(@NonNull String name, Integer parent_id) {
+    public Category(@NonNull String name, Long parent_id) {
         this.name = name;
         this.parent_id = parent_id;
     }
@@ -32,11 +32,11 @@ public class Category {
         this.name = name;
     }
 
-    public Integer getParent_id() {
+    public Long getParent_id() {
         return parent_id;
     }
 
-    public void setParent_id(Integer parent_id) {
+    public void setParent_id(Long parent_id) {
         this.parent_id = parent_id;
     }
 }

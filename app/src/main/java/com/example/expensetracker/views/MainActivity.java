@@ -136,14 +136,17 @@ public class MainActivity extends AppCompatActivity {
 
 //        viewModel.addAccount(new Account("XX123"));
 //        viewModel.addAccount(new Account("X1234"));
-//        viewModel.addCategory(new Category("Tea", 1));
+
+//        viewModel.addCategory(new Category("Snacks", null));
+//        viewModel.addCategory(new Category("Coffee", (long) 1));
+//        viewModel.addCategory(new Category("Tea", (long) 1));
 //        viewModel.addCategory(new Category("Entertainment", null));
-//        viewModel.addCategory(new Category("Online", 4));
-//        viewModel.addCategory(new Category("Offline", 4));
-//        viewModel.addCategory(new Category("Play", 6));
-//        viewModel.addCategory(new Category("Theatre", 6));
-//        viewModel.addCategory(new Category("Netflix", 5));
-//        viewModel.addCategory(new Category("Hotstar", 5));
+//        viewModel.addCategory(new Category("Online", (long) 4));
+//        viewModel.addCategory(new Category("Offline", (long) 4));
+//        viewModel.addCategory(new Category("Play", (long) 6));
+//        viewModel.addCategory(new Category("Theatre", (long) 6));
+//        viewModel.addCategory(new Category("Netflix", (long) 5));
+//        viewModel.addCategory(new Category("Hotstar", (long) 5));
 
 
 //        viewModel.addParty(new Party("Chill guy", "Chill guy (nickname)"));
@@ -170,9 +173,10 @@ public class MainActivity extends AppCompatActivity {
         try {
             BudgetDB db = new BudgetDB(getApplicationContext());
 //            db.insertMapping(new Mapping((long) 1, 20.0, 1));
-//            db.addTransaction(new Record("X1234", "2025-01-10", "08:57:00", "debited", 20.00, (long) 1, (long) 2)
+//            db.addTransaction(new Record((long) 1, "2025-01-10", "08:57:00", "debited", 20.00, null, null)
 //            , "Chill guy", "X1234");
 
+//            db.getCategoriesInDFS();
 
         }
         catch (Exception e){

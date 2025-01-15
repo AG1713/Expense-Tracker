@@ -44,7 +44,7 @@ public class SmsReceiver extends BroadcastReceiver {
 
             if (matcher.find()) {
                 Record record = new Record(
-                        (matcher.group(1).length() == 4) ? "X" + matcher.group(1) : "XX" + matcher.group(1), // Assuming at minimum there are last 3 digits, and at max 4
+                        null,
                         parseDate(matcher.group(4)),
                         (matcher.group(5).isEmpty()) ? new SimpleDateFormat("HH:mm:ss").format(message.getTimestampMillis()) : matcher.group(5),
                         matcher.group(2).toLowerCase(),

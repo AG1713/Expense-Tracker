@@ -3,10 +3,16 @@ package com.example.expensetracker.repository.database;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
+
+import com.example.expensetracker.ErrorCallback;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class BudgetDB extends SQLiteOpenHelper {
     public static final String DATABASE_NAME = "BudgetDB";
@@ -15,7 +21,8 @@ public class BudgetDB extends SQLiteOpenHelper {
 
     // Specify formats for date and time
     public static final String TABLE_ACCOUNTS = "accounts";
-    public static final String ACCOUNT_ACCOUNT = "account";
+    public static final String ACCOUNTS_ID = "id";
+    public static final String ACCOUNTS_ACCOUNT_NO = "account_no";
 
     public static final String TABLE_CATEGORIES = "categories";
     public static final String CATEGORIES_ID = "id";
@@ -29,7 +36,7 @@ public class BudgetDB extends SQLiteOpenHelper {
 
     public static final String TABLE_RECORDS = "records";
     public static final String RECORDS_ID = "id";
-    public static final String RECORDS_ACCOUNT_NO = "account_no";
+    public static final String RECORDS_ACCOUNT_ID = "account_id";
     public static final String RECORDS_DATE = "date"; // "YYYY-MM-DD"
     public static final String RECORDS_TIME = "time"; // "HH:MM:SS"
     public static final String RECORDS_OPERATION = "operation";
@@ -57,9 +64,9 @@ public class BudgetDB extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        // TODO: Replace hardcoded column ad table names with variables
         String qry1 = "CREATE TABLE " + TABLE_ACCOUNTS + " (" +
-                ACCOUNT_ACCOUNT + " TEXT PRIMARY KEY CHECK (LENGTH(account) = 5))";
+                ACCOUNTS_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                ACCOUNTS_ACCOUNT_NO + " TEXT UNIQUE NOT NULL CHECK (LENGTH(" + ACCOUNTS_ACCOUNT_NO + ") = 5))";
 
         // TODO: Figure out if category name required any other string constraint
         String qry2 = "CREATE TABLE " + TABLE_CATEGORIES + " (" +
@@ -76,7 +83,7 @@ public class BudgetDB extends SQLiteOpenHelper {
 
         String qry4 = "CREATE TABLE " + TABLE_RECORDS + " (" +
                 RECORDS_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
-                RECORDS_ACCOUNT_NO + " TEXT," +
+                RECORDS_ACCOUNT_ID + " INTEGER," +
                 RECORDS_DATE + " TEXT NOT NULL CHECK(" + RECORDS_DATE + " LIKE '____-__-__')," +
                 RECORDS_TIME + " TEXT NOT NULL CHECK(" + RECORDS_TIME + " LIKE '__:__:__')," +
                 RECORDS_OPERATION + " TEXT NOT NULL CHECK (operation IN ('credited', 'debited'))," +
@@ -84,7 +91,7 @@ public class BudgetDB extends SQLiteOpenHelper {
                 RECORDS_AMOUNT + " REAL NOT NULL CHECK (amount > 0 AND ROUND(amount,2) = amount)," +
                 RECORDS_DESCRIPTION + " TEXT CHECK (LENGTH(description) <= 100) CHECK (description NOT LIKE '%\n%')," +
                 RECORDS_CATEGORY_ID + " INTEGER," +
-                "FOREIGN KEY (" + RECORDS_ACCOUNT_NO + ") REFERENCES " + TABLE_ACCOUNTS + "(" + ACCOUNT_ACCOUNT + ") " +
+                "FOREIGN KEY (" + RECORDS_ACCOUNT_ID + ") REFERENCES " + TABLE_ACCOUNTS + "(" + ACCOUNTS_ID + ") " +
                 "ON UPDATE CASCADE ON DELETE SET NULL, " +
                 "FOREIGN KEY (" + RECORDS_CATEGORY_ID + ") REFERENCES " + TABLE_CATEGORIES + "(" + CATEGORIES_ID + ") " +
                 "ON UPDATE CASCADE ON DELETE SET NULL, " +
@@ -110,7 +117,7 @@ public class BudgetDB extends SQLiteOpenHelper {
             db.execSQL(qry4);
             db.execSQL(qry5);
         }
-        catch (SQLException e){
+        catch (SQLiteException e){
             Log.d(TAG, "onCreate: " + e.getMessage());
         }
 
@@ -126,22 +133,20 @@ public class BudgetDB extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    public void insertAccount(Account account){
+    public long insertAccount(Account account) throws SQLiteException{
         ContentValues values = new ContentValues();
-        values.put(ACCOUNT_ACCOUNT, account.getAccount());
+        values.put(ACCOUNTS_ACCOUNT_NO, account.getAccount_no());
+        long result = -1;
 
-        try {
-            SQLiteDatabase db = this.getWritableDatabase();
-            long result = db.insert(TABLE_ACCOUNTS, null, values);
-            if (result == -1) Log.d(TAG, "insertAccount: " + result + " a.k.a insertion failed");
-            db.close();
-        }
-        catch (SQLException e){
-            Log.d(TAG, "insertAccount: " + e.getMessage());
-        }
+        SQLiteDatabase db = this.getWritableDatabase();
+        result = db.insertOrThrow(TABLE_ACCOUNTS, null, values);
+        if (result == -1) Log.d(TAG, "insertAccount: " + result + " a.k.a insertion failed");
+        db.close();
+
+        return result;
     }
 
-    public long insertCategory(Category category){
+    public long insertCategory(Category category) throws SQLiteException{
         ContentValues values = new ContentValues();
         values.put(CATEGORIES_NAME, category.getName());
         values.put(CATEGORIES_PARENT_ID, category.getParent_id());
@@ -149,18 +154,18 @@ public class BudgetDB extends SQLiteOpenHelper {
 
         try {
             SQLiteDatabase db = getWritableDatabase();
-            result = db.insert(TABLE_CATEGORIES, null, values);
+            result = db.insertOrThrow(TABLE_CATEGORIES, null, values);
             if (result == -1) Log.d(TAG, "insertCategory: " + result + " a.k.a insertion failed");
             db.close();
         }
-        catch (SQLException e){
-            Log.d(TAG, "insertCategory: " + e.getMessage());
+        catch (SQLiteException e){
+            throw new SQLiteException("Insertion failed. Duplicate row or constraint issue.");
         }
 
         return result;
     }
 
-    public long insertParty(Party party){
+    public long insertParty(Party party) throws SQLiteException{
         ContentValues values = new ContentValues();
         values.put(PARTIES_NAME, party.getName());
         values.put(PARTIES_NICKNAME, party.getNickname());
@@ -168,20 +173,20 @@ public class BudgetDB extends SQLiteOpenHelper {
 
         try {
             SQLiteDatabase db = getWritableDatabase();
-            result = db.insert(TABLE_PARTY, null, values);
+            result = db.insertOrThrow(TABLE_PARTY, null, values);
             if (result == -1) Log.d(TAG, "insertParty: " + result + " a.k.a insertion failed");
             db.close();
         }
-        catch (SQLException e){
-            Log.d(TAG, "insertParty: " + e.getMessage());
+        catch (SQLiteException e){
+            throw new SQLiteException("Insertion failed. Duplicate row or constraint issue.");
         }
 
         return result;
     }
 
-    public void insertRecord(Record record){
+    public void insertRecord(Record record) throws SQLiteException{
         ContentValues values = new ContentValues();
-        values.put(RECORDS_ACCOUNT_NO, record.getAccount_no());
+        values.put(RECORDS_ACCOUNT_ID, record.getAccount_id());
         values.put(RECORDS_DATE, record.getDate());
         values.put(RECORDS_TIME, record.getTime());
         values.put(RECORDS_OPERATION, record.getOperation());
@@ -192,12 +197,12 @@ public class BudgetDB extends SQLiteOpenHelper {
 
         try {
             SQLiteDatabase db = this.getWritableDatabase();
-            long result = db.insert(TABLE_RECORDS, null, values);
+            long result = db.insertOrThrow(TABLE_RECORDS, null, values);
             if (result == -1) Log.d(TAG, "insertRecord: insertion = " + result + " a.k.a insertion failed");
             db.close();
         }
-        catch (SQLException e){
-            Log.d(TAG, "insertRecord: " + e.getMessage());
+        catch (SQLiteException e){
+            throw new SQLiteException("Insertion failed. Duplicate row or constraint issue.");
         }
     }
 
@@ -205,17 +210,19 @@ public class BudgetDB extends SQLiteOpenHelper {
         try{
             SQLiteDatabase db = this.getReadableDatabase();
             Cursor cursor = db.rawQuery("SELECT " +
-                    TABLE_RECORDS + ".id AS _id, account_no, date, time, operation, " + TABLE_PARTY + "." + PARTIES_NICKNAME + ", amount, description, " + TABLE_CATEGORIES + "." + CATEGORIES_NAME + " " +
+                    TABLE_RECORDS + ".id AS _id, " + ACCOUNTS_ACCOUNT_NO + ", date, time, operation, " + TABLE_PARTY + "." + PARTIES_NICKNAME + ", amount, description, " + TABLE_CATEGORIES + "." + CATEGORIES_NAME + " " +
                     "FROM " + TABLE_RECORDS + " " +
                     "LEFT JOIN " + TABLE_CATEGORIES + " " +
                     "ON " + TABLE_RECORDS + "." + RECORDS_CATEGORY_ID + " = " + TABLE_CATEGORIES + "." + CATEGORIES_ID + " " +
                     "LEFT JOIN " + TABLE_PARTY + " " +
-                    "ON " + TABLE_RECORDS + "." + RECORDS_PARTY_ID + " = " + TABLE_PARTY + "." + PARTIES_ID +
+                    "ON " + TABLE_RECORDS + "." + RECORDS_PARTY_ID + " = " + TABLE_PARTY + "." + PARTIES_ID + " " +
+                    "LEFT JOIN " + TABLE_ACCOUNTS + " " +
+                    "ON " + TABLE_RECORDS + "." + RECORDS_ACCOUNT_ID + " = " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID + " " +
                     " ORDER BY date ASC, time DESC",
                     null);
             return cursor;
         }
-        catch (SQLException e){
+        catch (SQLiteException e){
             Log.d(TAG, "getAllRecords: " + e.getMessage());
         }
         return null;
@@ -234,7 +241,7 @@ public class BudgetDB extends SQLiteOpenHelper {
             db.endTransaction();
             db.close();
         }
-        catch (SQLException e){
+        catch (SQLiteException e){
             Log.d(TAG, "deleteCategory: " + e.getMessage());
         }
     }
@@ -248,7 +255,7 @@ public class BudgetDB extends SQLiteOpenHelper {
             db.endTransaction();
             db.close();
         }
-        catch (SQLException e){
+        catch (SQLiteException e){
             Log.d(TAG, "deleteParty: " + e.getMessage());
         }
     }
@@ -262,7 +269,7 @@ public class BudgetDB extends SQLiteOpenHelper {
             db.endTransaction();
             db.close();
         }
-        catch (SQLException e){
+        catch (SQLiteException e){
             Log.d(TAG, "deleteRecord: " + e.getMessage());
         }
     }
@@ -280,7 +287,7 @@ public class BudgetDB extends SQLiteOpenHelper {
             if (result == -1) Log.d(TAG, "updateCategory: " + result + " a.k.a update failed");
             db.close();
         }
-        catch (SQLException e){
+        catch (SQLiteException e){
             Log.d(TAG, "updateCategory: " + e.getMessage());
         }
     }
@@ -298,14 +305,14 @@ public class BudgetDB extends SQLiteOpenHelper {
             if (result == -1) Log.d(TAG, "updateParty: " + result + " a.k.a update failed");
             db.close();
         }
-        catch (SQLException e){
+        catch (SQLiteException e){
             Log.d(TAG, "updateParty: " + e.getMessage());
         }
     }
 
     public void updateRecord(Record record){
         ContentValues values = new ContentValues();
-        values.put(RECORDS_ACCOUNT_NO, record.getAccount_no());
+        values.put(RECORDS_ACCOUNT_ID, record.getAccount_id());
         values.put(RECORDS_DATE, record.getDate());
         values.put(RECORDS_TIME, record.getTime());
         values.put(RECORDS_OPERATION, record.getOperation());
@@ -346,7 +353,7 @@ public class BudgetDB extends SQLiteOpenHelper {
 
             db.close();
         }
-        catch (SQLException e){
+        catch (SQLiteException e){
             Log.d(TAG, "updateRecord: " + e.getMessage());
         }
     }
@@ -363,22 +370,22 @@ public class BudgetDB extends SQLiteOpenHelper {
             }
             db.close();
         }
-        catch (SQLException e){
+        catch (SQLiteException e){
             Log.d(TAG, "getPartyId: " + e.getMessage());
         }
 
         return result;
     }
 
-    boolean searchAccount(String accountNo){
-        boolean result = false;
+    long searchAccount(String accountNo){
+        long result = -1;
         try{
             SQLiteDatabase db = getReadableDatabase();
-            Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_ACCOUNTS + " WHERE " + ACCOUNT_ACCOUNT + " = ?", new String[]{accountNo});
-            result = cursor.moveToFirst();
+            Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_ACCOUNTS + " WHERE " + ACCOUNTS_ACCOUNT_NO + " = ?", new String[]{accountNo});
+            if (cursor.moveToFirst()) result = cursor.getLong(0);
             cursor.close();
         }
-        catch (SQLException e){
+        catch (SQLiteException e){
             Log.d(TAG, "searchParty: " + e.getMessage());
         }
 
@@ -389,8 +396,7 @@ public class BudgetDB extends SQLiteOpenHelper {
         long temp = getPartyId(partyName);
         record.setParty((temp == -1) ? insertParty(new Party(partyName, partyName)) : temp);
 
-        if (!searchAccount(accountNo)) insertAccount(new Account(accountNo));
-        record.setAccount_no(accountNo);
+        if (searchAccount(accountNo) == -1) record.setAccount_id(insertAccount(new Account(accountNo)));
         Long id = getCategoryUsingMapping(record.getParty(), record.getAmount());
 
         if (record.getCategory_id() == null) record.setCategory_id(id);
@@ -398,7 +404,7 @@ public class BudgetDB extends SQLiteOpenHelper {
         insertRecord(record);
     }
 
-    public void insertMapping(Mapping mapping) throws SQLException {
+    public void insertMapping(Mapping mapping) throws SQLiteException {
         ContentValues values = new ContentValues();
         values.put(MAPPINGS_PARTY_ID, mapping.getParty_id());
         values.put(MAPPINGS_AMOUNT, mapping.getAmount());
@@ -406,10 +412,10 @@ public class BudgetDB extends SQLiteOpenHelper {
 
         SQLiteDatabase db = getWritableDatabase();
 
-        long result = db.insert(TABLE_MAPPINGS, null, values);
+        long result = db.insertOrThrow(TABLE_MAPPINGS, null, values);
         Log.d(TAG, "addMapping: " + result);
 
-        if (result == -1) throw new SQLException("Insertion failed. Duplicate row or constraint issue.");
+        if (result == -1) throw new SQLiteException("Insertion failed. Duplicate row or constraint issue.");
         db.close();
     }
 
@@ -419,7 +425,7 @@ public class BudgetDB extends SQLiteOpenHelper {
             db.delete(TABLE_MAPPINGS, MAPPINGS_ID + " = ?", new String[]{String.valueOf(id)});
             db.close();
         }
-        catch (SQLException e){
+        catch (SQLiteException e){
             Log.d(TAG, "deleteMapping: " + e.getMessage());
         }
     }
@@ -434,7 +440,7 @@ public class BudgetDB extends SQLiteOpenHelper {
             SQLiteDatabase db = getWritableDatabase();
             db.update(TABLE_MAPPINGS, values, MAPPINGS_ID + " = ?", new String[]{String.valueOf(mapping.getId())});
         }
-        catch (SQLException e){
+        catch (SQLiteException e){
             Log.d(TAG, "updateMapping: " + e.getMessage());
         }
         Log.d(TAG, "updateMapping: Mappings updated");
@@ -443,9 +449,6 @@ public class BudgetDB extends SQLiteOpenHelper {
     public Long getCategoryUsingMapping(long partyId, double amount){
         try {
             SQLiteDatabase db = getReadableDatabase();
-//            Cursor cursor = db.rawQuery("SELECT " + MAPPINGS_CATEGORY_ID + " FROM " + TABLE_MAPPINGS +
-//                    " WHERE " + MAPPINGS_PARTY_ID + " = ? AND " + MAPPINGS_AMOUNT + " = ?",
-//                    new String[]{String.valueOf(partyId), String.valueOf(amount)});
 
             Cursor cursor = db.rawQuery("SELECT " + MAPPINGS_CATEGORY_ID + " FROM " + TABLE_MAPPINGS +
                     " WHERE (" + MAPPINGS_PARTY_ID + " = ? OR " + MAPPINGS_AMOUNT + " IS NULL) " +
@@ -467,7 +470,7 @@ public class BudgetDB extends SQLiteOpenHelper {
             cursor.close();
             db.close();
         }
-        catch (SQLException e){
+        catch (SQLiteException e){
             Log.d(TAG, "getCategoryUsingMapping: " + e.getMessage());
         }
 
@@ -493,12 +496,99 @@ public class BudgetDB extends SQLiteOpenHelper {
 
             db.close();
         }
-        catch (SQLException e){
+        catch (SQLiteException e){
             Log.d(TAG, "getAllPartiesWithAmounts: " + e.getMessage());
         }
 
         return cursor;
     }
+
+    public Cursor getAllAccountsWithAmounts(){
+        Cursor cursor = null;
+
+        try {
+            SQLiteDatabase db = getReadableDatabase();
+
+            cursor = db.rawQuery(
+                    "SELECT " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID + " AS _id, " + ACCOUNTS_ACCOUNT_NO + "," +
+                            "SUM(" + RECORDS_AMOUNT + ") As Total " +
+                            "FROM " + TABLE_ACCOUNTS + " " +
+                            "LEFT JOIN " + TABLE_RECORDS + " " +
+                            "ON " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID + " = " +
+                            TABLE_RECORDS + "." + RECORDS_ACCOUNT_ID + " " +
+                            "GROUP BY " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID,
+                    null
+            );
+            Log.d(TAG, "getAllAccountsWithAmounts: " + cursor.getCount());
+
+            db.close();
+        }
+        catch (SQLiteException e){
+            Log.d(TAG, "getAllAccountsWithAmounts: " + e.getMessage());
+        }
+
+        return cursor;
+    }
+
+    public ArrayList<CategoryDisplay> getCategoriesInDFS(){
+        Cursor cursor = null;
+        ArrayList<Category> categories = new ArrayList<>();
+        Map<Long, ArrayList<Category>> categoryMap = new HashMap<>();
+        ArrayList<CategoryDisplay> categoryDisplays = new ArrayList<>();
+
+        try {
+            SQLiteDatabase db = getReadableDatabase();
+            cursor = db.rawQuery(
+                    "SELECT * FROM " + TABLE_CATEGORIES + " " +
+                            "ORDER BY " + CATEGORIES_PARENT_ID + " ASC",
+                    null
+            );
+
+            Log.d(TAG, "Categories count: " + cursor.getCount());
+
+            if (cursor.moveToFirst()){
+                do {
+                    Long parent_id = (cursor.getLong(2) == 0) ? null : cursor.getLong(2);
+                    Category category = new Category(cursor.getString(1), parent_id);
+                    category.setId(cursor.getLong(0));
+                    categoryMap.putIfAbsent(parent_id, new ArrayList<>());
+                    categoryMap.get(category.getParent_id()).add(category);
+                }while(cursor.moveToNext());
+            }
+
+            Log.d(TAG, "categoryMap size: " + categoryMap.size());
+
+            cursor.close();
+            db.close();
+        }
+        catch (SQLiteException e){
+            Log.d(TAG, "getCategoriesInDFS: " + e.getMessage());
+        }
+
+        getDFS(categoryMap, categoryDisplays, null, 0, 1);
+
+        for (CategoryDisplay i : categoryDisplays){
+            Log.d(TAG, i.getCategory().getId() + " " + i.getCategory().getName() + " " + i.getCategory().getParent_id() + " " + i.getLevel());
+        }
+
+        return categoryDisplays;
+    }
+
+    private void getDFS (Map<Long, ArrayList<Category>> categoryMap, ArrayList<CategoryDisplay> categoryDisplays, Long parent_id, double amount, int level){
+        if (!categoryMap.containsKey(parent_id)) {
+            return;
+        }
+
+        for (Category category : categoryMap.get(parent_id)){
+            categoryDisplays.add(new CategoryDisplay(category, level));
+            getDFS(categoryMap, categoryDisplays, category.getId(), 0, level+1);
+        }
+
+    }
+    
+
+
+
 
     public void test(){
         SQLiteDatabase db = getReadableDatabase();

@@ -2,15 +2,20 @@ package com.example.expensetracker.viewmodels;
 
 import android.app.Application;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteException;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 
+import com.example.expensetracker.ErrorCallback;
 import com.example.expensetracker.repository.Repository;
 import com.example.expensetracker.repository.database.Account;
 import com.example.expensetracker.repository.database.Category;
+import com.example.expensetracker.repository.database.CategoryDisplay;
 import com.example.expensetracker.repository.database.Party;
 import com.example.expensetracker.repository.database.Record;
+
+import java.util.ArrayList;
 
 public class MainActivityViewModel extends AndroidViewModel {
     private Repository repository;
@@ -23,14 +28,14 @@ public class MainActivityViewModel extends AndroidViewModel {
     public void addRecord(Record record){
         repository.addRecord(record);
     }
-    public void addAccount(Account account){
-        repository.addAccount(account);
+    public void addAccount(Account account, ErrorCallback callback){
+        repository.addAccount(account, callback);
     }
     public void addCategory(Category category){
         repository.addCategory(category);
     }
-    public void addParty(Party party){
-        repository.addParty(party);
+    public void addParty (Party party, ErrorCallback callback) throws SQLiteException {
+        repository.addParty(party, callback);
     }
     public Cursor getAllRecords(){
         return repository.getAllRecords();
@@ -56,7 +61,11 @@ public class MainActivityViewModel extends AndroidViewModel {
     public void addTransaction(Record record, String partyName, String accountNo){
         repository.addTransaction(record, partyName, accountNo);
     };
-    public Cursor getALlPartiesWithAmount(){
+    public Cursor getAllPartiesWithAmount(){
         return repository.getAllPartiesWithAmount();
     }
+    public ArrayList<CategoryDisplay> getAllCategoriesInDFS(){
+        return repository.getAllCategoriesInDFS();
+    }
+    public Cursor getAllAccountsWithAmount(){return repository.getAllAccountsWithAmounts();}
 }
