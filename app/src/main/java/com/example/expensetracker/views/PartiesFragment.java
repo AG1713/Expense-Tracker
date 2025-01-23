@@ -75,9 +75,9 @@ public class PartiesFragment extends Fragment {
                     String partyName = edtName.getText().toString();
                     String partyNickname = edtNickname.getText().toString();
 
-                    if (partyName.isEmpty()){
+                    if (partyName.isEmpty() || partyName.matches("\\s+")){
                         Toast.makeText(getContext(), "Party name cannot be empty", Toast.LENGTH_SHORT).show();
-                    } else if (partyNickname.isEmpty()) {
+                    } else if (partyNickname.isEmpty() || partyNickname.matches("\\s+")) {
                         Toast.makeText(getContext(), "Party nickname cannot be empty", Toast.LENGTH_SHORT).show();
                     } else {
                         viewModel.addParty(new Party(partyName, partyNickname), new ErrorCallback() {

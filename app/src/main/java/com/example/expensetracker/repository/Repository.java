@@ -10,13 +10,19 @@ import com.example.expensetracker.ErrorCallback;
 import com.example.expensetracker.repository.database.Account;
 import com.example.expensetracker.repository.database.BudgetDB;
 import com.example.expensetracker.repository.database.Category;
-import com.example.expensetracker.repository.database.CategoryDisplay;
+import com.example.expensetracker.repository.database.Goal;
+import com.example.expensetracker.repository.database.Mapping;
+import com.example.expensetracker.repository.displayEntities.CategoryDisplay;
 import com.example.expensetracker.repository.database.Party;
 import com.example.expensetracker.repository.database.Record;
+import com.example.expensetracker.repository.displayEntities.CategoryEntries;
+import com.github.mikephil.charting.data.BarEntry;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 public class Repository {
     private final BudgetDB db;
@@ -53,9 +59,32 @@ public class Repository {
 
     public void addAccount(Account account, ErrorCallback callback){
         executor.execute(() -> {
-
             try {
                 db.insertAccount(account);
+                callback.onSuccess();
+            }
+            catch (SQLiteException e){
+                callback.onError(e);
+            }
+        });
+    }
+
+    public void addGoal(Goal goal, ErrorCallback callback){
+        executor.execute(() -> {
+            try {
+                db.insertGoal(goal);
+                callback.onSuccess();
+            }
+            catch (SQLiteException e){
+                callback.onError(e);
+            }
+        });
+    }
+
+    public void addMapping(Mapping mapping, ErrorCallback callback){
+        executor.execute(() -> {
+            try {
+                db.insertMapping(mapping);
                 callback.onSuccess();
             }
             catch (SQLiteException e){
@@ -76,8 +105,16 @@ public class Repository {
         executor.execute(() -> db.deleteParty(id));
     }
 
-    public void removeRecord(long id){
-        executor.execute(() -> db.deleteRecord(id));
+    public void removeRecord(long id, Long category_id, double amount){
+        executor.execute(() -> db.deleteRecord(id, category_id, amount));
+    }
+
+    public void removeGoal(long id){
+        executor.execute(() -> db.deleteGoal(id));
+    }
+
+    public void removeMapping(long id) {
+        executor.execute(() -> db.deleteMapping(id));
     }
 
     public void updateCategory(Category category){
@@ -88,12 +125,45 @@ public class Repository {
         executor.execute(() -> db.updateParty(party));
     }
 
-    public void updateRecord(Record record){
-        executor.execute(() -> db.updateRecord(record));
+    public void updateRecord(Record record, Long old_category_id, double old_amount){
+        executor.execute(() -> db.updateRecord(record, old_category_id, old_amount));
     }
+
+    public void updateGoal(Goal goal, ErrorCallback callback){
+        executor.execute(() -> {
+            try {
+                db.updateGoal(goal);
+                callback.onSuccess();
+            }
+            catch (SQLiteException e){
+                callback.onError(e);
+            }
+
+        });
+    }
+
+    public void updateMapping(Mapping mapping, ErrorCallback callback){
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    db.updateMapping(mapping);
+                    callback.onSuccess();
+                }
+                catch (SQLiteException e){
+                    callback.onError(e);
+                }
+            }
+        });
+    }
+
 
     public void addTransaction(Record record, String partyName, String accountNo){
         executor.execute(() -> db.addTransaction(record, partyName, accountNo));
+    }
+
+    public void getAllMappings(Consumer<Cursor> callback){
+        executor.execute(() -> callback.accept(db.getAllMappings()));
     }
 
     public Cursor getAllPartiesWithAmount(){
@@ -106,6 +176,58 @@ public class Repository {
 
     public Cursor getAllAccountsWithAmounts(){
         return db.getAllAccountsWithAmounts();
+    }
+
+    public void getAllCategories(Consumer<Cursor> callback){
+        executor.execute(() -> {
+            Cursor cursor = db.getAllCategories();
+            callback.accept(cursor);
+        });
+    }
+
+    public void getAllAccounts(Consumer<Cursor> callback){
+        executor.execute(() -> {
+            Cursor cursor = db.getAllAccounts();
+            callback.accept(cursor);
+        });
+    }
+
+    public void getAllParties(Consumer<Cursor> callback){
+        executor.execute(() -> {
+            Cursor cursor = db.getAllParties();
+            callback.accept(cursor);
+        });
+    }
+
+    public void getAllGoals(Consumer<Cursor> callback){
+        executor.execute(() -> {
+            Cursor cursor = db.getAllGoals();
+            callback.accept(cursor);
+        });
+    }
+
+    public void getSevenDayExpenses(ArrayList<BarEntry> entries, ArrayList<String> dates, Runnable callback){
+        executor.execute(() -> {
+            db.getSevenDayExpenses(entries, dates);
+            callback.run();
+        });
+    }
+
+    public void getSevenDaysCategoriesAmounts(CategoryEntries categoryEntries, Runnable callback){
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                db.getSevenDaysCategoriesAmounts(categoryEntries);
+                callback.run();
+            }
+        });
+
+    }
+
+    public void getAllDatesCategoriesAmounts(Map<String, CategoryEntries> dateCategoryEntriesMap){
+        executor.execute(() -> {
+            db.getAllDatesCategoriesAmounts(dateCategoryEntriesMap);
+        });
     }
 
 }

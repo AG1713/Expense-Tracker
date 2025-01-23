@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "com.example.expensetracker"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.expensetracker"
@@ -50,5 +50,11 @@ dependencies {
 
     // SwipeRefreshLayout
     implementation(libs.androidx.swiperefreshlayout)
+
+    // MPAndroidChart
+    implementation(libs.mpandroidchart)
+
+    // WorkManager
+    implementation(libs.androidx.work.runtime)
 
 }

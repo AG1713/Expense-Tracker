@@ -10,6 +10,7 @@ import android.widget.ListView;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -24,6 +25,7 @@ import com.example.expensetracker.databinding.ActivityMainBinding;
 import com.example.expensetracker.repository.database.Account;
 import com.example.expensetracker.repository.database.BudgetDB;
 import com.example.expensetracker.repository.database.Category;
+import com.example.expensetracker.repository.database.Goal;
 import com.example.expensetracker.repository.database.Mapping;
 import com.example.expensetracker.repository.database.Party;
 import com.example.expensetracker.repository.database.Record;
@@ -43,12 +45,12 @@ public class MainActivity extends AppCompatActivity {
     BottomNavigationView bottomNavigationView;
     ViewPager2 viewPager;
     ViewPagerAdapter viewPagerAdapter;
+    Toolbar toolbar;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -58,8 +60,10 @@ public class MainActivity extends AppCompatActivity {
 
         startForegroundService(new Intent(this, SmsWatcher.class));
         viewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
+        toolbar = binding.toolbar;
 
         bottomNavigationView = binding.bottomNavigationView;
+        bottomNavigationView.setItemIconTintList(null);
         bottomNavigationView.setSelectedItemId(R.id.Records);
         viewPager = binding.viewPager;
         ArrayList<Fragment> fragments = new ArrayList<>();
@@ -151,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
 
 //        viewModel.addParty(new Party("Chill guy", "Chill guy (nickname)"));
 //        viewModel.addParty(new Party("Not chill guy", "Not so chill"));
-//        viewModel.addRecord(new Record("X1234", "2025-01-10", "02:00:00", "debited", 1000.00, (long) 1, (long) 1));
+//        viewModel.addRecord(new Record((long) 1, "2025-01-12", "02:00:00", "debited", 1000.00, (long) 1, null));
 //        viewModel.addRecord(new Record("X1234", "2024-12-24", "03:28:00", "debited", 600.00, null, (long) 1));
 //        viewModel.addRecord(new Record("X1234", "2024-12-24", "03:28:00", "debited", 400.00, (long) 1, null));
 
@@ -159,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
 //        party.setId(1);
 //        Category category = new Category("Snacks2", null);
 //        category.setId(2);
-//        Record record = new Record("X1234", "2025-01-01", "12:29:00", "debited", 10.0, null, null);
+//        Record record = new Record((long) 1, "2025-01-01", "12:29:00", "debited", 10.0, null, null);
 //        record.setId(1);
 //        viewModel.updateParty(party);
 //        viewModel.updateCategory(category);
@@ -173,8 +177,25 @@ public class MainActivity extends AppCompatActivity {
         try {
             BudgetDB db = new BudgetDB(getApplicationContext());
 //            db.insertMapping(new Mapping((long) 1, 20.0, 1));
-//            db.addTransaction(new Record((long) 1, "2025-01-10", "08:57:00", "debited", 20.00, null, null)
+//            db.addTransaction(new Record((long) 1, "2025-01-14", "08:57:00", "debited", 20.00, (long) 1, null)
 //            , "Chill guy", "X1234");
+//            db.addTransaction(new Record((long) 2, "2025-01-11", "08:57:00", "debited", 150.00, null, null)
+//            , "Chill guy", "X1234");
+
+//            db.insertGoal(new Goal("First", (long) 9, 7000, 10, "2025-01-16", "2025-01-19", "active"));
+//            db.insertGoal(new Goal("Second", (long) 5, 7000, 10, "2025-01-16", "2025-01-19", "active"));
+//            db.insertGoal(new Goal("Third", null, 7000, 10, "2025-01-16", "2025-01-19", "active"));
+
+//            db.insertGoal(new Goal("Fourth", (long) 9, 7000, 10, "2025-01-16", "2025-01-21", "active"));
+//            db.insertGoal(new Goal("Seventh", (long) 5, 7000, 10, "2025-01-16", "2025-01-21", "active"));
+//            db.insertGoal(new Goal("Sixth", null, 7000, 10, "2025-01-16", "2025-01-21", "active"));
+
+//            db.addExpenseOnGoal(9, 10000);
+//            db.reviseGoalsStatus();
+//            db.subtractExpenseOnGoal(5, 300);
+
+//
+//            db.getAllGoals();
 
 //            db.getCategoriesInDFS();
 

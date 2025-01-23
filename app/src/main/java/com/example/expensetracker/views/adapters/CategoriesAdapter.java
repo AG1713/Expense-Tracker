@@ -1,9 +1,7 @@
 package com.example.expensetracker.views.adapters;
 
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.databinding.DataBindingUtil;
@@ -11,7 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.expensetracker.R;
 import com.example.expensetracker.databinding.CategoryItemBinding;
-import com.example.expensetracker.repository.database.CategoryDisplay;
+import com.example.expensetracker.repository.displayEntities.CategoryDisplay;
 
 import java.util.ArrayList;
 

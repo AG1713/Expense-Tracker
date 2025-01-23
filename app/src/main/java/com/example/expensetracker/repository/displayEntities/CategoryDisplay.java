@@ -1,4 +1,6 @@
-package com.example.expensetracker.repository.database;
+package com.example.expensetracker.repository.displayEntities;
+
+import com.example.expensetracker.repository.database.Category;
 
 public class CategoryDisplay {
     private Category category;
