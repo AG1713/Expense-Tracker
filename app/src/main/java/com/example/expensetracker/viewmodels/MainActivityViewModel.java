@@ -72,14 +72,18 @@ public class MainActivityViewModel extends AndroidViewModel {
     public void removeParty(long id){
         repository.removeParty(id);
     }
+
+    public void removeAccount(long id){
+        repository.removeAccount(id);
+    }
     public void removeRecord(long id, Long category_id, double amount){
         repository.removeRecord(id, category_id, amount);
     }
     public void removeGoal(long id){
         repository.removeGoal(id);
     }
-    public void updateParty(Party party){
-        repository.updateParty(party);
+    public void updateParty(Party party, ErrorCallback callback){
+        repository.updateParty(party, callback);
     }
     public void updateCategory(Category category){
         repository.updateCategory(category);

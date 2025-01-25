@@ -1,5 +1,6 @@
 package com.example.expensetracker.views;
 
+import android.content.res.Resources;
 import android.graphics.Color;
 import android.os.Bundle;
 
@@ -107,6 +108,20 @@ public class AnalysisFragment extends Fragment {
 
     private void setupChart(BarChart chart, BarDataSet dataSet, ArrayList<String> labels, boolean enableTouch) {
         BarData barData = new BarData(dataSet);
+
+        // Calculate bar width in relation to chart width and max allowed bar width in dp
+        int maxBarWidthInDp = 50; // Max width in dp
+        float maxBarWidthInPx = convertDpToPx(maxBarWidthInDp); // Convert dp to px
+
+        // Calculate bar width based on the total chart width and number of entries
+        float chartWidth = chart.getWidth(); // Chart width in pixels
+        float totalBars = labels.size(); // Number of x-axis labels (bars)
+
+        if (totalBars > 0) {
+            float calculatedBarWidth = Math.min(maxBarWidthInPx / chartWidth, 1f / totalBars);
+            barData.setBarWidth(calculatedBarWidth);
+        }
+
         chart.setData(barData);
 
         // X-Axis configuration
@@ -118,8 +133,6 @@ public class AnalysisFragment extends Fragment {
 
         // Y-Axis configuration
         YAxis leftAxis = chart.getAxisLeft();
-        leftAxis.setSpaceTop(20f);
-        leftAxis.setSpaceBottom(20f);
         leftAxis.setTextColor(Color.WHITE);
 
         YAxis rightAxis = chart.getAxisRight();
@@ -133,6 +146,13 @@ public class AnalysisFragment extends Fragment {
         chart.setDoubleTapToZoomEnabled(false);
         chart.setDragEnabled(enableTouch);
         chart.setScaleEnabled(enableTouch);
+        chart.getLegend().setEnabled(false);
         chart.invalidate();
     }
+
+    // Helper method to convert dp to pixels
+    private float convertDpToPx(int dp) {
+        return dp * Resources.getSystem().getDisplayMetrics().density;
+    }
+
 }

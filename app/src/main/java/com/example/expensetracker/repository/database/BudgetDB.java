@@ -281,6 +281,14 @@ public class BudgetDB extends SQLiteOpenHelper {
         }
     }
 
+    public void deleteAccount(long id){
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+        db.delete(TABLE_ACCOUNTS, PARTIES_ID + " = ?", new String[]{String.valueOf(id)});
+        db.setTransactionSuccessful();
+        db.endTransaction();
+        db.close();
+    }
     public void deleteParty(long id){
         try{
             SQLiteDatabase db = getWritableDatabase();

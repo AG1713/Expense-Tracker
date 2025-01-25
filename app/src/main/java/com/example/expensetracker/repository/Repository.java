@@ -96,6 +96,9 @@ public class Repository {
         executor.execute(() -> db.deleteCategory(id));
     }
 
+    public void removeAccount(long id) {
+        executor.execute(() -> db.deleteAccount(id));
+    }
     public void removeParty(long id){
         executor.execute(() -> db.deleteParty(id));
     }
@@ -116,8 +119,16 @@ public class Repository {
         executor.execute(() -> db.updateCategory(category));
     }
 
-    public void updateParty(Party party){
-        executor.execute(() -> db.updateParty(party));
+    public void updateParty(Party party, ErrorCallback callback){
+        executor.execute(() -> {
+            try {
+                db.updateParty(party);
+                callback.onSuccess();
+            }
+            catch (SQLiteException e){
+                callback.onError(e);
+            }
+        });
     }
 
     public void updateRecord(Record record, Long old_category_id, double old_amount){

@@ -12,13 +12,17 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.PopupMenu;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.expensetracker.ErrorCallback;
@@ -68,16 +72,7 @@ public class PartiesFragment extends Fragment {
 
         fab = binding.fab;
         fab.setOnClickListener(v -> {
-            dialog = new Dialog(getContext());
-            dialog.setContentView(R.layout.add_party_dialog);
-            dialog.show();
-
-            Window window = dialog.getWindow();
-            if (window != null) {
-                WindowManager.LayoutParams params = window.getAttributes();
-                params.width = ViewGroup.LayoutParams.MATCH_PARENT; // Full width
-                window.setAttributes(params);
-            }
+            initializePartiesDialog();
 
             Button addPartyBtn = dialog.findViewById(R.id.add_party_btn);
 
@@ -109,13 +104,93 @@ public class PartiesFragment extends Fragment {
                         
                     }
 
-
                 }
             });
 
         });
 
 
+        listView.setOnItemLongClickListener((parent, view, position, id) -> {
+            PopupMenu menu = new PopupMenu(getContext(), view);
+            menu.getMenuInflater().inflate(R.menu.menu_item_options1, menu.getMenu());
+
+            menu.setOnMenuItemClickListener(item -> {
+                if (item.getItemId() == R.id.menu_update){
+                    initializePartiesDialog();
+                    TextView info = dialog.findViewById(R.id.info);
+                    EditText partyName = dialog.findViewById(R.id.party_name);
+                    EditText partyNickname = dialog.findViewById(R.id.party_nickname);
+                    Button updatePartyBtn = dialog.findViewById(R.id.add_party_btn);
+
+                    Cursor selectedParty = viewModel.getParties().getValue();
+                    selectedParty.moveToPosition(position);
+
+                    info.setText("Update party");
+                    partyName.setHint("New name");
+                    partyName.setText(selectedParty.getString(1));
+                    partyNickname.setHint("New nickname");
+                    partyNickname.setText(selectedParty.getString(2));
+                    updatePartyBtn.setText("Update Party");
+
+                    updatePartyBtn.setOnClickListener(v -> {
+                        String name = partyName.getText().toString();
+                        String nickname = partyNickname.getText().toString();
+
+                        if (name.isEmpty() || name.matches("\\s+")){
+                            Toast.makeText(getContext(), "Party name cannot be empty", Toast.LENGTH_SHORT).show();
+                        } else if (nickname.isEmpty() || nickname.matches("\\s+")) {
+                            Toast.makeText(getContext(), "Party nickname cannot be empty", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Party party = new Party(name, nickname);
+                            party.setId(selectedParty.getLong(0));
+                            viewModel.updateParty(party, new ErrorCallback() {
+                                @Override
+                                public void onSuccess() {
+                                    getActivity().runOnUiThread(() -> dialog.dismiss());
+                                }
+
+                                @Override
+                                public void onError(Exception e) {
+                                    getActivity().runOnUiThread(() -> Toast.makeText(getContext(), "Party with same name/nickname already exists", Toast.LENGTH_SHORT).show());
+                                }
+                            });
+
+                        }
+                    });
+
+
+
+                    return true;
+                }
+                else if (item.getItemId() == R.id.menu_delete){
+                    Cursor selectedParty = viewModel.getParties().getValue();
+                    selectedParty.moveToPosition(position);
+                    viewModel.removeParty(selectedParty.getLong(0));
+                    return true;
+                }
+                else return false;
+            });
+
+
+            menu.show();
+            return false;
+        });
+
         return binding.getRoot();
     }
+
+    private void initializePartiesDialog(){
+        dialog = new Dialog(getContext());
+        dialog.setContentView(R.layout.add_party_dialog);
+        dialog.show();
+
+        Window window = dialog.getWindow();
+        if (window != null) {
+            WindowManager.LayoutParams params = window.getAttributes();
+            params.width = ViewGroup.LayoutParams.MATCH_PARENT; // Full width
+            window.setAttributes(params);
+        }
+    }
+
+
 }

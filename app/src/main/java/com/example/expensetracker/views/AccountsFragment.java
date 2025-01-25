@@ -11,13 +11,17 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.PopupMenu;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.expensetracker.ErrorCallback;
@@ -64,16 +68,7 @@ public class AccountsFragment extends Fragment {
         });
 
         fab.setOnClickListener(v -> {
-            dialog = new Dialog(getContext());
-            dialog.setContentView(R.layout.add_account_dialog);
-            dialog.show();
-
-            Window window = dialog.getWindow();
-            if (window != null) {
-                WindowManager.LayoutParams params = window.getAttributes();
-                params.width = ViewGroup.LayoutParams.MATCH_PARENT; // Full width
-                window.setAttributes(params);
-            }
+            initializeAccountsDialog();
 
             Button addAccountBtn = dialog.findViewById(R.id.add_account_btn);
 
@@ -102,6 +97,38 @@ public class AccountsFragment extends Fragment {
 
         });
 
+        listView.setOnItemLongClickListener((parent, view, position, id) -> {
+            PopupMenu menu = new PopupMenu(getContext(), view);
+            menu.getMenuInflater().inflate(R.menu.menu_item_options2, menu.getMenu());
+
+            menu.setOnMenuItemClickListener(item -> {
+                if (item.getItemId() == R.id.menu_delete){
+                    Cursor selectedAccount = viewModel.getAccounts().getValue();
+                    selectedAccount.moveToPosition(position);
+                    viewModel.removeAccount(selectedAccount.getLong(0));
+                    return true;
+                }
+                else return false;
+            });
+
+            menu.show();
+            return true;
+        });
+
         return binding.getRoot();
     }
+
+    private void initializeAccountsDialog(){
+        dialog = new Dialog(getContext());
+        dialog.setContentView(R.layout.add_account_dialog);
+        dialog.show();
+
+        Window window = dialog.getWindow();
+        if (window != null) {
+            WindowManager.LayoutParams params = window.getAttributes();
+            params.width = ViewGroup.LayoutParams.MATCH_PARENT; // Full width
+            window.setAttributes(params);
+        }
+    }
+
 }

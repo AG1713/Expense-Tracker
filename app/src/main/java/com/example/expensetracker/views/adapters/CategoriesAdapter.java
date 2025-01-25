@@ -1,7 +1,10 @@
 package com.example.expensetracker.views.adapters;
 
+import android.content.Context;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.PopupMenu;
 
 import androidx.annotation.NonNull;
 import androidx.databinding.DataBindingUtil;
@@ -10,10 +13,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.expensetracker.R;
 import com.example.expensetracker.databinding.CategoryItemBinding;
 import com.example.expensetracker.repository.displayEntities.CategoryDisplay;
+import com.example.expensetracker.views.CategoriesFragment;
 
 import java.util.ArrayList;
 
-public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.MyViewHolder> {
+public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.MyViewHolder>{
     ArrayList<CategoryDisplay> categoryDisplays;
 
     public CategoriesAdapter(ArrayList<CategoryDisplay> categoryDisplays) {
