@@ -2,10 +2,14 @@ package com.example.expensetracker.viewmodels;
 
 import android.app.Application;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteException;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.example.expensetracker.ErrorCallback;
 import com.example.expensetracker.repository.Repository;
@@ -23,11 +27,27 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 public class MainActivityViewModel extends AndroidViewModel {
-    private Repository repository;
+    private final Repository repository;
+    private MutableLiveData<Cursor> records = new MutableLiveData<>();
+    private MutableLiveData<Cursor> parties = new MutableLiveData<>();
+    private MutableLiveData<Cursor> accounts = new MutableLiveData<>();
+    private MutableLiveData<ArrayList<CategoryDisplay>> categories = new MutableLiveData<>();
+    private MutableLiveData<Cursor> goals = new MutableLiveData<>();
+
+    private final String TAG = "MainActivityViewModel";
 
     public MainActivityViewModel(@NonNull Application application) {
         super(application);
         repository = new Repository(application.getApplicationContext());
+
+        repository.getAllCategoriesInDFS(categoryDisplays -> categories.postValue(categoryDisplays));
+        repository.getAllRecords(cursor -> {
+            records.postValue(cursor);
+        });
+        repository.getAllPartiesWithAmount(cursor -> parties.postValue(cursor));
+        repository.getAllAccountsWithAmounts(cursor -> accounts.postValue(cursor));
+        repository.getAllGoals(cursor -> goals.postValue(cursor));
+
     }
 
     public void addRecord(Record record){
@@ -45,9 +65,7 @@ public class MainActivityViewModel extends AndroidViewModel {
     public void addGoal(Goal goal, ErrorCallback callback) {
         repository.addGoal(goal, callback);
     }
-    public Cursor getAllRecords(){
-        return repository.getAllRecords();
-    }
+
     public void removeCategory(long id){
         repository.removeCategory(id);
     }
@@ -75,18 +93,52 @@ public class MainActivityViewModel extends AndroidViewModel {
     public void addTransaction(Record record, String partyName, String accountNo){
         repository.addTransaction(record, partyName, accountNo);
     };
-    public Cursor getAllPartiesWithAmount(){
-        return repository.getAllPartiesWithAmount();
+
+    public Cursor getAllRecords(){
+        return repository.getAllRecords();
     }
-    public ArrayList<CategoryDisplay> getAllCategoriesInDFS(){
-        return repository.getAllCategoriesInDFS();
+
+    public void getAllRecords(Runnable callback){
+        repository.getAllRecords(cursor -> {
+            records.postValue(cursor);
+            callback.run();
+        });
     }
-    public Cursor getAllAccountsWithAmount(){return repository.getAllAccountsWithAmounts();}
+    public void getAllPartiesWithAmount(Runnable callback){
+        repository.getAllPartiesWithAmount(cursor -> {
+            parties.postValue(cursor);
+            callback.run();
+        });
+    }
+    public void getAllCategoriesInDFS(Runnable callback){
+        repository.getAllCategoriesInDFS(new Consumer<ArrayList<CategoryDisplay>>() {
+            @Override
+            public void accept(ArrayList<CategoryDisplay> categoryDisplays) {
+                categories.postValue(categoryDisplays);
+                callback.run();
+            }
+        });
+    }
+    public void getAllAccountsWithAmount(Runnable callback){
+        repository.getAllAccountsWithAmounts(new Consumer<Cursor>() {
+            @Override
+            public void accept(Cursor cursor) {
+                accounts.postValue(cursor);
+                callback.run();
+            }
+        });
+    }
+
+
+
     public void getAllCategories(Consumer<Cursor> callback){ repository.getAllCategories(callback);}
     public void getAllAccounts(Consumer<Cursor> callback){repository.getAllAccounts(callback);}
     public void getAllParties(Consumer<Cursor> callback) {repository.getAllParties(callback);}
-    public void getAllGoals(Consumer<Cursor> callback){
-        repository.getAllGoals(callback);
+    public void getAllGoals(Runnable callback){
+        repository.getAllGoals(cursor -> {
+            goals.postValue(cursor);
+            callback.run();
+        });
     }
     public void getSevenDayExpense(ArrayList<BarEntry> entries, ArrayList<String> dates, Runnable callback){
         repository.getSevenDayExpenses(entries, dates, callback);
@@ -96,5 +148,25 @@ public class MainActivityViewModel extends AndroidViewModel {
     }
     public void getSevenDaysCategoriesAmounts(CategoryEntries categoryEntries, Runnable callback){
         repository.getSevenDaysCategoriesAmounts(categoryEntries, callback);
+    }
+
+    public MutableLiveData<Cursor> getRecords() {
+        return records;
+    }
+
+    public MutableLiveData<Cursor> getParties() {
+        return parties;
+    }
+
+    public MutableLiveData<Cursor> getAccounts() {
+        return accounts;
+    }
+
+    public MutableLiveData<ArrayList<CategoryDisplay>> getCategories() {
+        return categories;
+    }
+
+    public MutableLiveData<Cursor> getGoals() {
+        return goals;
     }
 }

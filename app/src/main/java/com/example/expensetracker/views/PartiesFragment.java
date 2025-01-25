@@ -1,13 +1,16 @@
 package com.example.expensetracker.views;
 
 import android.app.Dialog;
+import android.database.Cursor;
 import android.os.Bundle;
 
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,6 +29,8 @@ import com.example.expensetracker.viewmodels.MainActivityViewModel;
 import com.example.expensetracker.views.adapters.PartiesAdapter;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.util.function.Consumer;
+
 public class PartiesFragment extends Fragment {
     FragmentPartiesBinding binding;
     MainActivityViewModel viewModel;
@@ -40,18 +45,28 @@ public class PartiesFragment extends Fragment {
                              Bundle savedInstanceState) {
 
         binding = DataBindingUtil.inflate(getLayoutInflater(), R.layout.fragment_parties, container, false);
-        viewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
         listView = binding.listview;
-        adapter = new PartiesAdapter(getContext(), viewModel.getAllPartiesWithAmount(), 0);
-        listView.setAdapter(adapter);
+        viewModel.getParties().observe(getViewLifecycleOwner(), new Observer<Cursor>() {
+            @Override
+            public void onChanged(Cursor cursor) {
+                if (cursor != null){
+                    if (adapter != null) adapter.swapCursor(cursor);
+                    else {
+                        adapter = new PartiesAdapter(getContext(), cursor, 0);
+                        listView.setAdapter(adapter);
+                    }
+                }
+            }
+        });
+
         swipeRefreshLayout = binding.swipeRefreshLayout;
 
         swipeRefreshLayout.setOnRefreshListener(() -> {
-            adapter.swapCursor(viewModel.getAllPartiesWithAmount());
-            swipeRefreshLayout.setRefreshing(false);
+            viewModel.getAllPartiesWithAmount(() -> swipeRefreshLayout.setRefreshing(false));
         });
-        fab = binding.fab;
 
+        fab = binding.fab;
         fab.setOnClickListener(v -> {
             dialog = new Dialog(getContext());
             dialog.setContentView(R.layout.add_party_dialog);

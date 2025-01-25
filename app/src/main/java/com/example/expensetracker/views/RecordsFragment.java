@@ -11,6 +11,7 @@ import android.os.Bundle;
 
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
@@ -37,9 +38,11 @@ import android.widget.Toast;
 
 import com.example.expensetracker.R;
 import com.example.expensetracker.databinding.FragmentRecordsBinding;
+import com.example.expensetracker.repository.Repository;
 import com.example.expensetracker.repository.database.BudgetDB;
 import com.example.expensetracker.repository.database.Record;
 import com.example.expensetracker.viewmodels.MainActivityViewModel;
+import com.example.expensetracker.views.adapters.PartiesAdapter;
 import com.example.expensetracker.views.adapters.RecordsAdapter;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -52,7 +55,6 @@ public class RecordsFragment extends Fragment {
     FragmentRecordsBinding binding;
     MainActivityViewModel viewModel;
     RecordsAdapter adapter;
-    Cursor cursor;
     ListView listView;
     SwipeRefreshLayout swipeRefreshLayout;
     FloatingActionButton fab;
@@ -63,16 +65,22 @@ public class RecordsFragment extends Fragment {
                              Bundle savedInstanceState) {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_records, container, false);
         viewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
-        cursor = viewModel.getAllRecords();
-        adapter = new RecordsAdapter(getActivity(), cursor, 0);
-        listView = binding.recyclerview;
-        listView.setAdapter(adapter);
+        listView = binding.listView;
+
+        viewModel.getRecords().observe(getViewLifecycleOwner(), cursor -> {
+            if (cursor != null){
+                if (adapter != null) adapter.swapCursor(cursor);
+                else {
+                    adapter = new RecordsAdapter(getContext(), cursor, 0);
+                    Log.d(TAG, "Cursor is closed: " + adapter.getCursor().isClosed());
+                    listView.setAdapter(adapter);
+                }
+            }
+        });
 
         swipeRefreshLayout = binding.swipeRefreshLayout;
         swipeRefreshLayout.setOnRefreshListener(() -> {
-            cursor = viewModel.getAllRecords();
-            adapter.swapCursor(cursor);
-            swipeRefreshLayout.setRefreshing(false);
+            viewModel.getAllRecords(() -> swipeRefreshLayout.setRefreshing(false));
         });
 
         binding.mapping.setOnClickListener(new View.OnClickListener() {
@@ -100,6 +108,7 @@ public class RecordsFragment extends Fragment {
             Spinner account = dialog.findViewById(R.id.spinner_account);
             TextView date = dialog.findViewById(R.id.date);
             TextView time = dialog.findViewById(R.id.time);
+            AtomicReference<String> selectedDate = new AtomicReference<>();
             AtomicReference<String> selectedTime = new AtomicReference<>();
             EditText amount = dialog.findViewById(R.id.amount);
             RadioGroup operation = dialog.findViewById(R.id.radio_group);
@@ -175,14 +184,20 @@ public class RecordsFragment extends Fragment {
                 DatePickerDialog datePickerDialog = new DatePickerDialog(getContext());
                 datePickerDialog.show();
 
-                datePickerDialog.setOnDateSetListener((view, year, month, dayOfMonth) -> date.setText(year + "-" + month+1 + "-" + dayOfMonth));
+                datePickerDialog.setOnDateSetListener((view, year, month, dayOfMonth) -> {
+                    selectedDate.set(year + "-" + (((month + 1) < 10) ? "0" + (month+1) : (month+1)) + "-" +
+                            ((dayOfMonth + 1 < 10) ? "0" + dayOfMonth : dayOfMonth));
+                    Log.d(TAG, "selected date: " + selectedDate.get());
+                    date.setText(dayOfMonth + "-" + (month + 1) + "-" + year);
+                });
             });
 
             time.setOnClickListener(v13 -> {
                 TimePickerDialog timePickerDialog = new TimePickerDialog(getContext(), (view, hourOfDay, minute) -> {
-                    time.setText(hourOfDay % 12 + ":" + ((minute < 10) ? "0" + minute : minute) + ((hourOfDay > 11) ? " AM" : " PM"));
+                    time.setText(hourOfDay % 12 + ":" + ((minute < 10) ? "0" + minute : minute) + ((hourOfDay < 12) ? " AM" : " PM"));
                     selectedTime.set(((hourOfDay < 10) ? "0" + hourOfDay : hourOfDay) + ":" + ((minute < 10) ? "0" + minute : minute) + ":" + "00");
-                }, 12, 0, false);
+                    Log.d(TAG, "selected time: " + selectedTime.get());
+                    }, 12, 0, false);
                 timePickerDialog.show();
             });
 
@@ -228,7 +243,7 @@ public class RecordsFragment extends Fragment {
                     else {
                         Record record = new Record(
                                 (selectedAccount.getLong(0) == -1) ? null : selectedAccount.getLong(0),
-                                date.getText().toString(),
+                                selectedDate.get(),
                                 selectedTime.get(),
                                 (operation.getCheckedRadioButtonId() == R.id.credited) ? "credited" : "debited",
                                 Double.parseDouble(amount.getText().toString()),
@@ -237,7 +252,8 @@ public class RecordsFragment extends Fragment {
                         );
                         record.setDescription(description.getText().toString());
                         viewModel.addRecord(record);
-                        dialog.dismiss();
+                        viewModel.getAllRecords(() -> getActivity().runOnUiThread(() -> dialog.dismiss()));
+
                     }
 
                 }
@@ -278,6 +294,7 @@ public class RecordsFragment extends Fragment {
 
 
     void showUpdateDialog(int i){
+        Cursor cursor = viewModel.getRecords().getValue();
         Log.d(TAG, "showUpdateDialog: ");
         cursor.moveToPosition(i);
 
@@ -297,6 +314,7 @@ public class RecordsFragment extends Fragment {
         Spinner account = dialog1.findViewById(R.id.spinner_account);
         TextView date = dialog1.findViewById(R.id.date);
         TextView time = dialog1.findViewById(R.id.time);
+        AtomicReference<String> selectedDate = new AtomicReference<>();
         AtomicReference<String> selectedTime = new AtomicReference<>();
         EditText amount = dialog1.findViewById(R.id.amount);
         RadioGroup operation = dialog1.findViewById(R.id.radio_group);
@@ -393,14 +411,19 @@ public class RecordsFragment extends Fragment {
             DatePickerDialog datePickerDialog = new DatePickerDialog(getContext());
             datePickerDialog.show();
 
-            datePickerDialog.setOnDateSetListener((view, year, month, dayOfMonth) -> date.setText(year + "-" + month+1 + "-" + dayOfMonth));
+            datePickerDialog.setOnDateSetListener((view, year, month, dayOfMonth) -> {
+                selectedDate.set(year + "-" + (((month + 1) < 10) ? "0" + (month+1) : (month+1)) + "-" +
+                        ((dayOfMonth + 1 < 10) ? "0" + dayOfMonth : dayOfMonth));
+                Log.d(TAG, "showUpdateDialog: " + selectedDate.get());
+                date.setText(dayOfMonth + "-" + (month + 1) + "-" + year);
+            });
         });
 
         time.setText(cursor.getString(3));
         selectedTime.set(cursor.getString(3));
         time.setOnClickListener(v13 -> {
             TimePickerDialog timePickerDialog = new TimePickerDialog(getContext(), (view, hourOfDay, minute) -> {
-                time.setText(hourOfDay % 12 + ":" + ((minute < 10) ? "0" + minute : minute) + ((hourOfDay > 11) ? " AM" : " PM"));
+                time.setText(hourOfDay % 12 + ":" + ((minute < 10) ? "0" + minute : minute) + ((hourOfDay < 12) ? " AM" : " PM"));
                 selectedTime.set(((hourOfDay < 10) ? "0" + hourOfDay : hourOfDay) + ":" + ((minute < 10) ? "0" + minute : minute) + ":" + "00");
             }, 12, 0, false);
             timePickerDialog.show();
@@ -432,6 +455,8 @@ public class RecordsFragment extends Fragment {
             }
         });
 
+        description.setText(cursor.getString(7));
+
         addRecordBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -450,7 +475,7 @@ public class RecordsFragment extends Fragment {
                 else {
                     Record record = new Record(
                             (selectedAccount.getLong(0) == -1) ? null : selectedAccount.getLong(0),
-                            date.getText().toString(),
+                            selectedDate.get(),
                             selectedTime.get(),
                             (operation.getCheckedRadioButtonId() == R.id.credited) ? "credited" : "debited",
                             Double.parseDouble(amount.getText().toString()),
@@ -461,7 +486,7 @@ public class RecordsFragment extends Fragment {
                     Log.d(TAG, "onClick: " + cursor.getLong(0));
                     record.setId(cursor.getLong(0));
                     viewModel.updateRecord(record, cursor.getLong(9), cursor.getDouble(6));
-                    dialog1.dismiss();
+                    viewModel.getAllRecords(() -> getActivity().runOnUiThread(dialog1::dismiss));
                 }
 
             }
@@ -474,9 +499,16 @@ public class RecordsFragment extends Fragment {
     }
 
     void deleteRecord(int i){
+        Cursor cursor = viewModel.getRecords().getValue();
         Log.d(TAG, "deleteRecord: ");
         cursor.moveToPosition(i);
         viewModel.removeRecord(cursor.getLong(0), cursor.getLong(9), cursor.getDouble(6));
+        viewModel.getAllRecords(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getContext(), "Record deleted", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
 

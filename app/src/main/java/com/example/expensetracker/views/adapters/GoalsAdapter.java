@@ -73,7 +73,8 @@ public class GoalsAdapter extends CursorAdapter {
         endDate.setText("End date: " + cursor.getString(endDateIndex));
         if (Objects.equals(cursor.getString(statusIndex), "failed")) status.setTextColor(Color.RED);
         else if (Objects.equals(cursor.getString(statusIndex), "completed")) status.setTextColor(Color.GREEN);
-        else status.setTextColor(Color.YELLOW);
+        else if (Objects.equals(cursor.getString(statusIndex), "upcoming")) status.setTextColor(Color.YELLOW);
+        else status.setTextColor(Color.CYAN);
         status.setText(cursor.getString(statusIndex));
 
 

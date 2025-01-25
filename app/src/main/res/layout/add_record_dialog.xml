@@ -54,7 +54,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="15dp"
-        android:hint="YYYY-MM-DD"
+        android:hint="DD-MM-YYYY"
         android:textSize="18dp"
         app:layout_constraintStart_toEndOf="@+id/date_info"
         app:layout_constraintTop_toBottomOf="@+id/account_info" />

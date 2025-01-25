@@ -1,10 +1,12 @@
 package com.example.expensetracker.views;
 
 import android.app.Dialog;
+import android.database.Cursor;
 import android.os.Bundle;
 
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
@@ -40,17 +42,25 @@ public class AccountsFragment extends Fragment {
                              Bundle savedInstanceState) {
 
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_accounts, container, false);
-        viewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
-        adapter = new AccountsAdapter(getContext(), viewModel.getAllAccountsWithAmount(), 0);
+        viewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
         listView = binding.recyclerView;
-        listView.setAdapter(adapter);
+        viewModel.getAccounts().observe(getViewLifecycleOwner(), cursor -> {
+            if (cursor != null){
+                if (adapter != null) adapter.swapCursor(cursor);
+                else {
+                    adapter = new AccountsAdapter(getContext(), cursor, 0);
+                    listView.setAdapter(adapter);
+                }
+            }
+        });
+
+
 
         swipeRefreshLayout = binding.swipeRefreshLayout;
         fab = binding.fab;
 
         swipeRefreshLayout.setOnRefreshListener(() -> {
-            adapter.swapCursor(viewModel.getAllAccountsWithAmount());
-            swipeRefreshLayout.setRefreshing(false);
+            viewModel.getAllAccountsWithAmount(() -> swipeRefreshLayout.setRefreshing(false));
         });
 
         fab.setOnClickListener(v -> {

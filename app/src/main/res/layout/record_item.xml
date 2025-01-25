@@ -11,7 +11,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Amount"
-        android:textSize="15sp"
+        android:textStyle="bold"
+        android:textSize="18sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -19,6 +20,7 @@
         android:id="@+id/operation"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:padding="2.5dp"
         android:layout_marginStart="15dp"
         android:text="operation"
         android:textColor="#4E4E4E"
@@ -30,18 +32,18 @@
         android:id="@+id/to_or_by"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="15dp"
+        android:layout_marginTop="7.5dp"
         android:text="to/by"
         android:textColor="#4E4E4E"
         android:textSize="11sp"
-        app:layout_constraintBottom_toBottomOf="@+id/operation"
-        app:layout_constraintStart_toEndOf="@+id/operation" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/amount" />
 
     <TextView
         android:id="@+id/party"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="15dp"
+        android:layout_marginStart="7.5dp"
         android:text="party"
         android:textColor="#4E4E4E"
         android:textSize="11sp"
@@ -52,44 +54,43 @@
         android:id="@+id/date"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="5dp"
+        android:layout_marginEnd="7.5dp"
         android:text="Date"
         android:textColor="#4E4E4E"
         android:textSize="11sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/amount" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/time" />
 
     <TextView
         android:id="@+id/time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="15dp"
         android:text="Time"
         android:textColor="#4E4E4E"
         android:textSize="11sp"
-        app:layout_constraintStart_toEndOf="@id/date"
-        app:layout_constraintBottom_toBottomOf="@+id/date" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <TextView
         android:id="@+id/category"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="5dp"
         android:text="category"
-        android:textColor="#4E4E4E"
-        android:textSize="11sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/date" />
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/date"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/description"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="5dp"
+        android:layout_marginTop="7.5dp"
         android:text="Description"
         android:textColor="#4E4E4E"
         android:textSize="11sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/category" />
+        app:layout_constraintTop_toBottomOf="@+id/to_or_by" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

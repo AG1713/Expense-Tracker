@@ -25,14 +25,13 @@ import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 public class Repository {
-    private final BudgetDB db;
+    private BudgetDB db;
 
     ExecutorService executor;
     Handler handler;
 
     public Repository(Context context){
         db = new BudgetDB(context);
-
         executor = Executors.newSingleThreadExecutor();
         handler = new android.os.Handler(Looper.getMainLooper());
     }
@@ -91,10 +90,6 @@ public class Repository {
                 callback.onError(e);
             }
         });
-    }
-
-    public Cursor getAllRecords(){
-        return db.getAllRecords();
     }
 
     public void removeCategory(long id){
@@ -162,20 +157,36 @@ public class Repository {
         executor.execute(() -> db.addTransaction(record, partyName, accountNo));
     }
 
+    public Cursor getAllRecords(){
+        return db.getAllRecords();
+    }
+    public void getAllRecords(Consumer<Cursor> callback){
+        executor.execute(() -> callback.accept(db.getAllRecords()));
+    }
+
     public void getAllMappings(Consumer<Cursor> callback){
         executor.execute(() -> callback.accept(db.getAllMappings()));
     }
 
-    public Cursor getAllPartiesWithAmount(){
-        return db.getAllPartiesWithAmounts();
+    public void getAllPartiesWithAmount(Consumer<Cursor> callback){
+        executor.execute(() -> callback.accept(db.getAllPartiesWithAmounts()));
     }
 
-    public ArrayList<CategoryDisplay> getAllCategoriesInDFS(){
-        return db.getCategoriesInDFS();
+//    public Cursor getAllPartiesWithAmount(){
+//        return db.getAllPartiesWithAmounts();
+//    }
+
+    public void getAllCategoriesInDFS(Consumer<ArrayList<CategoryDisplay>> callback){
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                callback.accept(db.getCategoriesInDFS());
+            }
+        });
     }
 
-    public Cursor getAllAccountsWithAmounts(){
-        return db.getAllAccountsWithAmounts();
+    public void getAllAccountsWithAmounts(Consumer<Cursor> callback){
+        executor.execute(() -> callback.accept(db.getAllAccountsWithAmounts()));
     }
 
     public void getAllCategories(Consumer<Cursor> callback){

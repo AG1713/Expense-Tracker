@@ -8,6 +8,7 @@ import android.os.Bundle;
 
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -30,10 +31,12 @@ import com.example.expensetracker.R;
 import com.example.expensetracker.databinding.FragmentCategoriesBinding;
 import com.example.expensetracker.repository.database.BudgetDB;
 import com.example.expensetracker.repository.database.Category;
+import com.example.expensetracker.repository.displayEntities.CategoryDisplay;
 import com.example.expensetracker.viewmodels.MainActivityViewModel;
 import com.example.expensetracker.views.adapters.CategoriesAdapter;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.util.ArrayList;
 import java.util.function.Consumer;
 
 public class CategoriesFragment extends Fragment {
@@ -52,24 +55,30 @@ public class CategoriesFragment extends Fragment {
                              Bundle savedInstanceState) {
 
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_categories, container, false);
-        viewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
         swipeRefreshLayout = binding.swipeRefreshLayout;
         recyclerView = binding.recyclerView;
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         fab = binding.fab;
 
-        adapter = new CategoriesAdapter(viewModel.getAllCategoriesInDFS());
-        recyclerView.setAdapter(adapter);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-
-
-        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+        viewModel.getCategories().observe(getViewLifecycleOwner(), new Observer<ArrayList<CategoryDisplay>>() {
             @Override
-            public void onRefresh() {
-                adapter.setCategoryDisplays(viewModel.getAllCategoriesInDFS());
-                swipeRefreshLayout.setRefreshing(false);
+            public void onChanged(ArrayList<CategoryDisplay> categoryDisplays) {
+                if (categoryDisplays != null){
+                    if (adapter!= null) adapter.setCategoryDisplays(categoryDisplays);
+                    else {
+                        adapter = new CategoriesAdapter(categoryDisplays);
+                        recyclerView.setAdapter(adapter);
+                    }
+                }
             }
         });
+
+        swipeRefreshLayout.setOnRefreshListener(() ->
+                viewModel.getAllCategoriesInDFS(() -> {
+            swipeRefreshLayout.setRefreshing(false);
+        }));
 
         fab.setOnClickListener(v -> {
             dialog = new Dialog(getContext());

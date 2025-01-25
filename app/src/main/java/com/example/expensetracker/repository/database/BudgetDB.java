@@ -130,10 +130,10 @@ public class BudgetDB extends SQLiteOpenHelper {
                 GOALS_NAME + " TEXT NOT NULL UNIQUE," +
                 GOALS_CATEGORY_ID + " INTEGER, " +
                 GOALS_AMOUNT + " REAL NOT NULL CHECK (" + GOALS_AMOUNT + " > 0 AND ROUND( " + GOALS_AMOUNT + ",2) = " + GOALS_AMOUNT + ")," +
-                GOALS_EXPENSE + " REAL NOT NULL CHECK (" + GOALS_EXPENSE + " > 0 AND ROUND( " + GOALS_EXPENSE + ",2) = " + GOALS_EXPENSE + ")," +
+                GOALS_EXPENSE + " REAL NOT NULL CHECK (" + GOALS_EXPENSE + " >= 0 AND ROUND( " + GOALS_EXPENSE + ",2) = " + GOALS_EXPENSE + ")," +
                 GOALS_START_DATE + " TEXT NOT NULL CHECK(" + GOALS_START_DATE + " LIKE '____-__-__')," +
                 GOALS_END_DATE +  " TEXT NOT NULL CHECK(" + GOALS_END_DATE + " LIKE '____-__-__')," +
-                GOALS_STATUS + " TEXT NOT NULL CHECK(" + GOALS_STATUS + " IN ('active', 'completed', 'failed')), " +
+                GOALS_STATUS + " TEXT NOT NULL CHECK(" + GOALS_STATUS + " IN ('active', 'completed', 'failed', 'upcoming')), " +
                 "FOREIGN KEY (" + GOALS_CATEGORY_ID + ") REFERENCES " + TABLE_CATEGORIES + "(" + CATEGORIES_ID + ") " +
                 "ON UPDATE CASCADE ON DELETE CASCADE )";
 
@@ -246,8 +246,10 @@ public class BudgetDB extends SQLiteOpenHelper {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
             Date currentDate = dateFormat.parse(dateFormat.format(new Date()));
             Date end = sdf.parse(goal.getEnd_date());
+            Date start = sdf.parse(goal.getStart_date());
 
             if (goal.getAmount() < goal.getExpense()) values.put(GOALS_STATUS, "failed");
+            else if (currentDate.before(start)) values.put(GOALS_STATUS, "upcoming");
             else if (currentDate.after(end)) values.put(GOALS_STATUS, "completed");
             else values.put(GOALS_STATUS, "active");
         } catch (ParseException e) {
@@ -260,27 +262,6 @@ public class BudgetDB extends SQLiteOpenHelper {
         db.close();
     }
 
-    public Cursor getAllRecords(){
-        try{
-            SQLiteDatabase db = this.getReadableDatabase();
-            Cursor cursor = db.rawQuery("SELECT " +
-                    TABLE_RECORDS + ".id AS _id, " + ACCOUNTS_ACCOUNT_NO + ", date, time, operation, " + TABLE_PARTY + "." + PARTIES_NICKNAME + ", amount, description, " + TABLE_CATEGORIES + "." + CATEGORIES_NAME + ", " + RECORDS_CATEGORY_ID + " " +
-                    "FROM " + TABLE_RECORDS + " " +
-                    "LEFT JOIN " + TABLE_CATEGORIES + " " +
-                    "ON " + TABLE_RECORDS + "." + RECORDS_CATEGORY_ID + " = " + TABLE_CATEGORIES + "." + CATEGORIES_ID + " " +
-                    "LEFT JOIN " + TABLE_PARTY + " " +
-                    "ON " + TABLE_RECORDS + "." + RECORDS_PARTY_ID + " = " + TABLE_PARTY + "." + PARTIES_ID + " " +
-                    "LEFT JOIN " + TABLE_ACCOUNTS + " " +
-                    "ON " + TABLE_RECORDS + "." + RECORDS_ACCOUNT_ID + " = " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID + " " +
-                    " ORDER BY date DESC, time DESC",
-                    null);
-            return cursor;
-        }
-        catch (SQLiteException e){
-            Log.d(TAG, "getAllRecords: " + e.getMessage());
-        }
-        return null;
-    }
 
     public void deleteCategory(long id){
         try{
@@ -654,6 +635,30 @@ public class BudgetDB extends SQLiteOpenHelper {
         Log.d(TAG, "updateMapping: Mappings updated");
     }
 
+    public Cursor getAllRecords(){
+        Cursor cursor = null;
+        try{
+            SQLiteDatabase db = this.getReadableDatabase();
+            Log.d(TAG, "getAllRecords is open: " + db.isOpen());
+            cursor = db.rawQuery("SELECT " +
+                            TABLE_RECORDS + ".id AS _id, " + ACCOUNTS_ACCOUNT_NO + ", date, time, operation, " + TABLE_PARTY + "." + PARTIES_NICKNAME + ", amount, description, " + TABLE_CATEGORIES + "." + CATEGORIES_NAME + ", " + RECORDS_CATEGORY_ID + " " +
+                            "FROM " + TABLE_RECORDS + " " +
+                            "LEFT JOIN " + TABLE_CATEGORIES + " " +
+                            "ON " + TABLE_RECORDS + "." + RECORDS_CATEGORY_ID + " = " + TABLE_CATEGORIES + "." + CATEGORIES_ID + " " +
+                            "LEFT JOIN " + TABLE_PARTY + " " +
+                            "ON " + TABLE_RECORDS + "." + RECORDS_PARTY_ID + " = " + TABLE_PARTY + "." + PARTIES_ID + " " +
+                            "LEFT JOIN " + TABLE_ACCOUNTS + " " +
+                            "ON " + TABLE_RECORDS + "." + RECORDS_ACCOUNT_ID + " = " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID + " " +
+                            " ORDER BY date DESC, time DESC",
+                    null);
+        }
+        catch (SQLiteException e){
+            Log.d(TAG, "getAllRecords: " + e.getMessage());
+        }
+        return cursor;
+    }
+
+
     public Cursor getAllMappings(){
         Cursor cursor = null;
 
@@ -717,8 +722,6 @@ public class BudgetDB extends SQLiteOpenHelper {
                     null
             );
             Log.d(TAG, "getAllPartiesWithAmounts: " + cursor.getCount());
-
-            db.close();
         }
         catch (SQLiteException e){
             Log.d(TAG, "getAllPartiesWithAmounts: " + e.getMessage());
@@ -744,8 +747,6 @@ public class BudgetDB extends SQLiteOpenHelper {
                     null
             );
             Log.d(TAG, "getAllAccountsWithAmounts: " + cursor.getCount());
-
-            db.close();
         }
         catch (SQLiteException e){
             Log.d(TAG, "getAllAccountsWithAmounts: " + e.getMessage());
@@ -809,7 +810,7 @@ public class BudgetDB extends SQLiteOpenHelper {
         }
 
     }
-    
+
     public Cursor getAllCategories() throws SQLiteException{
         Cursor cursor = null;
 

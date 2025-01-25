@@ -15,6 +15,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -38,15 +39,16 @@ import com.example.expensetracker.repository.database.BudgetDB;
 import com.example.expensetracker.repository.database.Goal;
 import com.example.expensetracker.viewmodels.MainActivityViewModel;
 import com.example.expensetracker.views.adapters.GoalsAdapter;
+import com.example.expensetracker.views.adapters.RecordsAdapter;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 public class GoalsFragment extends Fragment {
     FragmentGoalsBinding binding;
     MainActivityViewModel viewModel;
     GoalsAdapter adapter;
-    Cursor cursor;
     ListView listView;
     SwipeRefreshLayout swipeRefreshLayout;
     FloatingActionButton fab;
@@ -56,25 +58,22 @@ public class GoalsFragment extends Fragment {
                              Bundle savedInstanceState) {
 
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_goals, container, false);
-        viewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
         listView = binding.listView;
         swipeRefreshLayout = binding.swipeRefreshLayout;
         fab = binding.fab;
 
-        viewModel.getAllGoals(c -> {
-            getActivity().runOnUiThread(() -> {
-                cursor = c;
-                adapter = new GoalsAdapter(getContext(), cursor, 0);
-                listView.setAdapter(adapter);
-            });
-
+        viewModel.getGoals().observe(getViewLifecycleOwner(), cursor -> {
+            if (cursor != null){
+                if (adapter != null) adapter.swapCursor(cursor);
+                else {
+                    adapter = new GoalsAdapter(getContext(), cursor, 0);
+                    listView.setAdapter(adapter);
+                }
+            }
         });
 
-        swipeRefreshLayout.setOnRefreshListener(() -> viewModel.getAllGoals(c -> getActivity().runOnUiThread(() -> {
-            cursor = c;
-            adapter.swapCursor(cursor);
-            swipeRefreshLayout.setRefreshing(false);
-        })));
+        swipeRefreshLayout.setOnRefreshListener(() -> viewModel.getAllGoals(() -> swipeRefreshLayout.setRefreshing(false)));
 
         fab.setOnClickListener(view -> {
             Dialog dialog = new Dialog(getContext());
@@ -93,7 +92,9 @@ public class GoalsFragment extends Fragment {
             EditText amount = dialog.findViewById(R.id.goal_amount);
             EditText expense = dialog.findViewById(R.id.goal_expense);
             TextView start_date = dialog.findViewById(R.id.goal_start_date);
+            AtomicReference<String> selected_start_date = new AtomicReference<>();
             TextView end_date = dialog.findViewById(R.id.goal_end_date);
+            AtomicReference<String> selected_end_date = new AtomicReference<>();
             Button addGoalBtn = dialog.findViewById(R.id.add_goal_btn);
 
             // Spinners first
@@ -121,14 +122,22 @@ public class GoalsFragment extends Fragment {
                 DatePickerDialog datePickerDialog = new DatePickerDialog(getContext());
                 datePickerDialog.show();
 
-                datePickerDialog.setOnDateSetListener((v, year, month, dayOfMonth) -> start_date.setText(year + "-" + month+1 + "-" + dayOfMonth));
+                datePickerDialog.setOnDateSetListener((v, year, month, dayOfMonth) -> {
+                    selected_start_date.set(year + "-" + (((month + 1) < 10) ? "0" + (month+1) : (month+1)) + "-" +
+                            ((dayOfMonth + 1 < 10) ? "0" + dayOfMonth : dayOfMonth));
+                    start_date.setText(dayOfMonth + "-" + (month + 1) + "-" + year);
+                });
             });
 
             end_date.setOnClickListener(v12 -> {
                 DatePickerDialog datePickerDialog = new DatePickerDialog(getContext());
                 datePickerDialog.show();
 
-                datePickerDialog.setOnDateSetListener((v, year, month, dayOfMonth) -> end_date.setText(year + "-" + month+1 + "-" + dayOfMonth));
+                datePickerDialog.setOnDateSetListener((v, year, month, dayOfMonth) -> {
+                    selected_end_date.set(year + "-" + (((month + 1) < 10) ? "0" + (month+1) : (month+1)) + "-" +
+                            ((dayOfMonth + 1 < 10) ? "0" + dayOfMonth : dayOfMonth));
+                    end_date.setText(dayOfMonth + "-" + (month + 1) + "-" + year);
+                });
             });
 
             // Amount edittext
@@ -162,20 +171,22 @@ public class GoalsFragment extends Fragment {
                     Toast.makeText(getContext(), "Start date cannot be empty", Toast.LENGTH_SHORT).show();
                 else if (end_date.getText().toString().trim().isEmpty())
                     Toast.makeText(getContext(), "End date cannot be empty", Toast.LENGTH_SHORT).show();
+                else if (selected_end_date.get().compareTo(selected_start_date.get()) < 0){
+                    Toast.makeText(getContext(), "Invalid start and end dates", Toast.LENGTH_SHORT).show();
+                }
                 else {
                     viewModel.addGoal(new Goal(
                             name.getText().toString().trim(),
                             (selectedCategory.getLong(0) == -1) ? null : selectedCategory.getLong(0),
                             Double.parseDouble(amount.getText().toString().trim()),
                             Double.parseDouble(expense.getText().toString().trim()),
-                            start_date.getText().toString(),
-                            end_date.getText().toString(),
+                            selected_start_date.get(),
+                            selected_end_date.get(),
                             "active"
                     ), new ErrorCallback() {
                         @Override
                         public void onSuccess() {
-                            getActivity().runOnUiThread(dialog::dismiss);
-                            dialog.dismiss();
+                            viewModel.getAllGoals(() -> getActivity().runOnUiThread(() -> dialog.dismiss()));
                         }
 
                         @Override
@@ -220,6 +231,7 @@ public class GoalsFragment extends Fragment {
     }
 
     public void deleteGoal(int i){
+        Cursor cursor = viewModel.getGoals().getValue();
         cursor.moveToPosition(i);
         viewModel.removeGoal(cursor.getLong(0));
     }

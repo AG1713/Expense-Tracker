@@ -32,7 +32,7 @@
             app:layout_constraintTop_toBottomOf="@+id/mapping">
 
             <ListView
-                android:id="@+id/recyclerview"
+                android:id="@+id/listView"
                 android:layout_width="0dp"
                 android:layout_height="0dp" />
 

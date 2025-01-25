@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -20,6 +21,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.example.expensetracker.ErrorCallback;
 import com.example.expensetracker.R;
 import com.example.expensetracker.databinding.ActivityMainBinding;
 import com.example.expensetracker.repository.database.Account;
@@ -138,8 +140,51 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-//        viewModel.addAccount(new Account("XX123"));
-//        viewModel.addAccount(new Account("X1234"));
+//        viewModel.addAccount(new Account("XX123"), new ErrorCallback() {
+//            @Override
+//            public void onSuccess() {
+//
+//            }
+//
+//            @Override
+//            public void onError(Exception e) {
+//                Toast.makeText(MainActivity.this, "Default additions error", Toast.LENGTH_SHORT).show();
+//            }
+//        });
+//        viewModel.addAccount(new Account("X1234"), new ErrorCallback() {
+//            @Override
+//            public void onSuccess() {
+//
+//            }
+//
+//            @Override
+//            public void onError(Exception e) {
+//                Toast.makeText(MainActivity.this, "Default additions error", Toast.LENGTH_SHORT).show();
+//            }
+//        });
+//
+//        viewModel.addParty(new Party("Chill guy", "Chill guy (nickname)"), new ErrorCallback() {
+//            @Override
+//            public void onSuccess() {
+//
+//            }
+//
+//            @Override
+//            public void onError(Exception e) {
+//                Toast.makeText(MainActivity.this, "Default additions error", Toast.LENGTH_SHORT).show();
+//            }
+//        });
+//        viewModel.addParty(new Party("Not chill guy", "Not so chill"), new ErrorCallback() {
+//            @Override
+//            public void onSuccess() {
+//
+//            }
+//
+//            @Override
+//            public void onError(Exception e) {
+//                Toast.makeText(MainActivity.this, "Default additions error", Toast.LENGTH_SHORT).show();
+//            }
+//        });
 
 //        viewModel.addCategory(new Category("Snacks", null));
 //        viewModel.addCategory(new Category("Coffee", (long) 1));
@@ -152,52 +197,16 @@ public class MainActivity extends AppCompatActivity {
 //        viewModel.addCategory(new Category("Netflix", (long) 5));
 //        viewModel.addCategory(new Category("Hotstar", (long) 5));
 
-
-//        viewModel.addParty(new Party("Chill guy", "Chill guy (nickname)"));
-//        viewModel.addParty(new Party("Not chill guy", "Not so chill"));
 //        viewModel.addRecord(new Record((long) 1, "2025-01-12", "02:00:00", "debited", 1000.00, (long) 1, null));
-//        viewModel.addRecord(new Record("X1234", "2024-12-24", "03:28:00", "debited", 600.00, null, (long) 1));
-//        viewModel.addRecord(new Record("X1234", "2024-12-24", "03:28:00", "debited", 400.00, (long) 1, null));
+//        viewModel.addRecord(new Record((long) 1, "2024-12-24", "03:28:00", "debited", 600.00, null, (long) 1));
+//        viewModel.addRecord(new Record((long) 1, "2024-12-24", "03:28:00", "debited", 400.00, (long) 1, null));
 
-//        Party party = new Party("Chill guy 2", "NICKNAME");
-//        party.setId(1);
-//        Category category = new Category("Snacks2", null);
-//        category.setId(2);
-//        Record record = new Record((long) 1, "2025-01-01", "12:29:00", "debited", 10.0, null, null);
-//        record.setId(1);
-//        viewModel.updateParty(party);
-//        viewModel.updateCategory(category);
-//        viewModel.updateRecord(record);
 
-//        viewModel.removeParty(4);
-
-//        viewModel.addTransaction(new Record("X1234", "2025-01-10", "06:03:00", "debited", 20.00, (long) 1, null)
+//        viewModel.addTransaction(new Record((long) 1, "2025-01-10", "06:03:00", "debited", 20.00, (long) 1, null)
 //            , "Chill guy", "X1234");
 
         try {
             BudgetDB db = new BudgetDB(getApplicationContext());
-//            db.insertMapping(new Mapping((long) 1, 20.0, 1));
-//            db.addTransaction(new Record((long) 1, "2025-01-14", "08:57:00", "debited", 20.00, (long) 1, null)
-//            , "Chill guy", "X1234");
-//            db.addTransaction(new Record((long) 2, "2025-01-11", "08:57:00", "debited", 150.00, null, null)
-//            , "Chill guy", "X1234");
-
-//            db.insertGoal(new Goal("First", (long) 9, 7000, 10, "2025-01-16", "2025-01-19", "active"));
-//            db.insertGoal(new Goal("Second", (long) 5, 7000, 10, "2025-01-16", "2025-01-19", "active"));
-//            db.insertGoal(new Goal("Third", null, 7000, 10, "2025-01-16", "2025-01-19", "active"));
-
-//            db.insertGoal(new Goal("Fourth", (long) 9, 7000, 10, "2025-01-16", "2025-01-21", "active"));
-//            db.insertGoal(new Goal("Seventh", (long) 5, 7000, 10, "2025-01-16", "2025-01-21", "active"));
-//            db.insertGoal(new Goal("Sixth", null, 7000, 10, "2025-01-16", "2025-01-21", "active"));
-
-//            db.addExpenseOnGoal(9, 10000);
-//            db.reviseGoalsStatus();
-//            db.subtractExpenseOnGoal(5, 300);
-
-//
-//            db.getAllGoals();
-
-//            db.getCategoriesInDFS();
 
         }
         catch (Exception e){
