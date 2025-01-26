@@ -48,6 +48,8 @@ public class AccountsFragment extends Fragment {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_accounts, container, false);
         viewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
         listView = binding.recyclerView;
+        TextView emptyView = binding.emptyTextView;
+        listView.setEmptyView(emptyView);
         viewModel.getAccounts().observe(getViewLifecycleOwner(), cursor -> {
             if (cursor != null){
                 if (adapter != null) adapter.swapCursor(cursor);
@@ -82,7 +84,7 @@ public class AccountsFragment extends Fragment {
                     viewModel.addAccount(new Account("X" + accountNo), new ErrorCallback() {
                         @Override
                         public void onSuccess() {
-                            getActivity().runOnUiThread(() -> dialog.dismiss());
+                            viewModel.getAllAccountsWithAmount(() -> getActivity().runOnUiThread(() -> dialog.dismiss()));
                         }
 
                         @Override

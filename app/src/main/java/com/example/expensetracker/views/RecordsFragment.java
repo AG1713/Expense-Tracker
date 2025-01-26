@@ -324,33 +324,30 @@ public class RecordsFragment extends Fragment {
         Button addRecordBtn = dialog1.findViewById(R.id.add_record_btn);
 
         // First setting the spinners
-        viewModel.getAllAccounts(new Consumer<Cursor>() {
-            @Override
-            public void accept(Cursor cursor1) {
-                MatrixCursor defaultCursor = new MatrixCursor(new String[]{"_id", BudgetDB.ACCOUNTS_ACCOUNT_NO});
-                defaultCursor.addRow(new Object[]{-1, "N/A"});
-                MergeCursor mergedCursor = new MergeCursor(new Cursor[]{defaultCursor, cursor1});
+        viewModel.getAllAccounts(cursor1 -> {
+            MatrixCursor defaultCursor = new MatrixCursor(new String[]{"_id", BudgetDB.ACCOUNTS_ACCOUNT_NO});
+            defaultCursor.addRow(new Object[]{-1, "N/A"});
+            MergeCursor mergedCursor = new MergeCursor(new Cursor[]{defaultCursor, cursor1});
 
-                SimpleCursorAdapter cursorAdapter = new SimpleCursorAdapter(
-                        getContext(),
-                        android.R.layout.simple_spinner_item,
-                        mergedCursor,
-                        new String[]{BudgetDB.ACCOUNTS_ACCOUNT_NO},
-                        new int[] {android.R.id.text1},
-                        0
-                );
+            SimpleCursorAdapter cursorAdapter = new SimpleCursorAdapter(
+                    getContext(),
+                    android.R.layout.simple_spinner_item,
+                    mergedCursor,
+                    new String[]{BudgetDB.ACCOUNTS_ACCOUNT_NO},
+                    new int[] {android.R.id.text1},
+                    0
+            );
 
-                getActivity().runOnUiThread(() -> {
-                    account.setAdapter(cursorAdapter);
+            getActivity().runOnUiThread(() -> {
+                account.setAdapter(cursorAdapter);
 
-                    mergedCursor.moveToFirst();
-                    do {
-                        if (Objects.equals(mergedCursor.getString(1), cursor.getString(1))) {
-                            account.setSelection(mergedCursor.getPosition());
-                        }
-                    } while(mergedCursor.moveToNext());
-                });
-            }
+                mergedCursor.moveToFirst();
+                do {
+                    if (Objects.equals(mergedCursor.getString(1), cursor.getString(1))) {
+                        account.setSelection(mergedCursor.getPosition());
+                    }
+                } while(mergedCursor.moveToNext());
+            });
         });
 
         viewModel.getAllParties(cursor1 -> {
@@ -407,6 +404,7 @@ public class RecordsFragment extends Fragment {
 
         // Date and time
         date.setText(cursor.getString(2));
+        selectedDate.set(cursor.getString(2));
         date.setOnClickListener(v12 -> {
             DatePickerDialog datePickerDialog = new DatePickerDialog(getContext());
             datePickerDialog.show();
@@ -457,39 +455,36 @@ public class RecordsFragment extends Fragment {
 
         description.setText(cursor.getString(7));
 
-        addRecordBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Cursor selectedAccount = (Cursor) account.getSelectedItem();
-                Cursor selectedParty = (Cursor) party.getSelectedItem();
-                Cursor selectedCategory = (Cursor) category.getSelectedItem();
+        addRecordBtn.setOnClickListener(v -> {
+            Cursor selectedAccount = (Cursor) account.getSelectedItem();
+            Cursor selectedParty = (Cursor) party.getSelectedItem();
+            Cursor selectedCategory = (Cursor) category.getSelectedItem();
 
-                if (date.getText().toString().isEmpty())
-                    Toast.makeText(getContext(), "Enter valid date", Toast.LENGTH_SHORT).show();
-                else if (time.getText().toString().isEmpty())
-                    Toast.makeText(getContext(), "Enter valid time", Toast.LENGTH_SHORT).show();
-                else if (amount.getText().toString().isEmpty())
-                    Toast.makeText(getContext(), "Enter valid amount", Toast.LENGTH_SHORT).show();
-                else if (operation.getCheckedRadioButtonId() == -1)
-                    Toast.makeText(getContext(), "Please check credited/debited", Toast.LENGTH_SHORT).show();
-                else {
-                    Record record = new Record(
-                            (selectedAccount.getLong(0) == -1) ? null : selectedAccount.getLong(0),
-                            selectedDate.get(),
-                            selectedTime.get(),
-                            (operation.getCheckedRadioButtonId() == R.id.credited) ? "credited" : "debited",
-                            Double.parseDouble(amount.getText().toString()),
-                            (selectedParty.getLong(0) == -1) ? null : selectedParty.getLong(0),
-                            (selectedCategory.getLong(0) == -1) ? null : selectedCategory.getLong(0)
-                    );
-                    record.setDescription(description.getText().toString());
-                    Log.d(TAG, "onClick: " + cursor.getLong(0));
-                    record.setId(cursor.getLong(0));
-                    viewModel.updateRecord(record, cursor.getLong(9), cursor.getDouble(6));
-                    viewModel.getAllRecords(() -> getActivity().runOnUiThread(dialog1::dismiss));
-                }
-
+            if (date.getText().toString().isEmpty())
+                Toast.makeText(getContext(), "Enter valid date", Toast.LENGTH_SHORT).show();
+            else if (time.getText().toString().isEmpty())
+                Toast.makeText(getContext(), "Enter valid time", Toast.LENGTH_SHORT).show();
+            else if (amount.getText().toString().isEmpty())
+                Toast.makeText(getContext(), "Enter valid amount", Toast.LENGTH_SHORT).show();
+            else if (operation.getCheckedRadioButtonId() == -1)
+                Toast.makeText(getContext(), "Please check credited/debited", Toast.LENGTH_SHORT).show();
+            else {
+                Record record = new Record(
+                        (selectedAccount.getLong(0) == -1) ? null : selectedAccount.getLong(0),
+                        selectedDate.get(),
+                        selectedTime.get(),
+                        (operation.getCheckedRadioButtonId() == R.id.credited) ? "credited" : "debited",
+                        Double.parseDouble(amount.getText().toString()),
+                        (selectedParty.getLong(0) == -1) ? null : selectedParty.getLong(0),
+                        (selectedCategory.getLong(0) == -1) ? null : selectedCategory.getLong(0)
+                );
+                record.setDescription(description.getText().toString());
+                Log.d(TAG, "edited record id: " + cursor.getLong(0));
+                record.setId(cursor.getLong(0));
+                viewModel.updateRecord(record, cursor.getLong(9), cursor.getDouble(6));
+                viewModel.getAllRecords(() -> getActivity().runOnUiThread(dialog1::dismiss));
             }
+
         });
 
         TextView info = dialog1.findViewById(R.id.info);
@@ -506,7 +501,7 @@ public class RecordsFragment extends Fragment {
         viewModel.getAllRecords(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(getContext(), "Record deleted", Toast.LENGTH_SHORT).show();
+                getActivity().runOnUiThread(() -> Toast.makeText(getContext(), "Record deleted", Toast.LENGTH_SHORT).show());
             }
         });
     }

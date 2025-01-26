@@ -7,15 +7,19 @@ import android.database.MergeCursor;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.PopupMenu;
 import android.widget.SimpleCursorAdapter;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -46,6 +50,7 @@ public class MappingsActivity extends AppCompatActivity {
     MappingsAdapter adapter;
     FloatingActionButton fab;
     SwipeRefreshLayout swipeRefreshLayout;
+    Dialog dialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +66,8 @@ public class MappingsActivity extends AppCompatActivity {
         fab = binding.fab;
         swipeRefreshLayout = binding.swipeRefreshLayout;
         listView = binding.listView;
+        TextView emptyView = binding.emptyTextView;
+        listView.setEmptyView(emptyView);
         viewModel.getMappings().observe(this, cursor -> {
             if (cursor != null){
                 if (adapter != null) adapter.swapCursor(cursor);
@@ -74,16 +81,7 @@ public class MappingsActivity extends AppCompatActivity {
         swipeRefreshLayout.setOnRefreshListener(() -> viewModel.getAllMappings(() -> swipeRefreshLayout.setRefreshing(false)));
 
         fab.setOnClickListener(v -> {
-            Dialog dialog = new Dialog(this);
-            dialog.setContentView(R.layout.add_mapping_dialog);
-            dialog.show();
-
-            Window window = dialog.getWindow();
-            if (window != null) {
-                WindowManager.LayoutParams params = window.getAttributes();
-                params.width = ViewGroup.LayoutParams.MATCH_PARENT; // Full width
-                window.setAttributes(params);
-            }
+            initializeDialog();
 
             Spinner party = dialog.findViewById(R.id.spinner_party);
             EditText amount = dialog.findViewById(R.id.amount);
@@ -174,7 +172,7 @@ public class MappingsActivity extends AppCompatActivity {
 
                                 @Override
                                 public void onError(Exception e) {
-                                    Toast.makeText(MappingsActivity.this, "Such a mapping already exists", Toast.LENGTH_SHORT).show();
+                                    runOnUiThread(() -> Toast.makeText(MappingsActivity.this, "Such a mapping already exists", Toast.LENGTH_SHORT).show());
                                 }
                             });
                 }
@@ -182,6 +180,40 @@ public class MappingsActivity extends AppCompatActivity {
 
         });
 
+        listView.setOnItemLongClickListener((parent, view, position, id) -> {
+            PopupMenu menu = new PopupMenu(MappingsActivity.this, view);
+            menu.getMenuInflater().inflate(R.menu.menu_item_options2, menu.getMenu());
+
+            menu.setOnMenuItemClickListener(item -> {
+                if (item.getItemId() == R.id.menu_delete){
+                    Cursor cursor = viewModel.getMappings().getValue();
+                    cursor.moveToPosition(position);
+                    viewModel.removeMapping(cursor.getLong(0), () -> viewModel.getAllMappings(() -> {
+                        runOnUiThread(() -> Toast.makeText(MappingsActivity.this, "Mapping deleted", Toast.LENGTH_SHORT).show());
+                    }));
+                    return true;
+                }
+
+                return false;
+            });
+
+            menu.show();
+            return false;
+        });
 
     }
+
+    private void initializeDialog(){
+        dialog = new Dialog(this);
+        dialog.setContentView(R.layout.add_mapping_dialog);
+        dialog.show();
+
+        Window window = dialog.getWindow();
+        if (window != null) {
+            WindowManager.LayoutParams params = window.getAttributes();
+            params.width = ViewGroup.LayoutParams.MATCH_PARENT; // Full width
+            window.setAttributes(params);
+        }
+    }
+
 }

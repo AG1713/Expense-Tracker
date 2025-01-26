@@ -346,17 +346,12 @@ public class BudgetDB extends SQLiteOpenHelper {
         values.put(CATEGORIES_NAME, category.getName());
         values.put(CATEGORIES_PARENT_ID, category.getParent_id());
 
-        try{
-            SQLiteDatabase db = getWritableDatabase();
-            long result = db.update(TABLE_CATEGORIES, values,
-                    CATEGORIES_ID + " = ?",
-                    new String[]{String.valueOf(category.getId())});
-            if (result == -1) Log.d(TAG, "updateCategory: " + result + " a.k.a update failed");
-            db.close();
-        }
-        catch (SQLiteException e){
-            Log.d(TAG, "updateCategory: " + e.getMessage());
-        }
+        SQLiteDatabase db = getWritableDatabase();
+        long result = db.update(TABLE_CATEGORIES, values,
+                CATEGORIES_ID + " = ?",
+                new String[]{String.valueOf(category.getId())});
+        if (result == -1) Log.d(TAG, "updateCategory: " + result + " a.k.a update failed");
+        db.close();
     }
 
     public void updateParty(Party party){
@@ -364,17 +359,12 @@ public class BudgetDB extends SQLiteOpenHelper {
         values.put(PARTIES_NAME, party.getName());
         values.put(PARTIES_NICKNAME, party.getNickname());
 
-        try {
-            SQLiteDatabase db = getWritableDatabase();
-            long result = db.update(TABLE_PARTY, values,
-                    PARTIES_ID + " = ?",
-                    new String[]{String.valueOf(party.getId())});
-            if (result == -1) Log.d(TAG, "updateParty: " + result + " a.k.a update failed");
-            db.close();
-        }
-        catch (SQLiteException e){
-            Log.d(TAG, "updateParty: " + e.getMessage());
-        }
+        SQLiteDatabase db = getWritableDatabase();
+        long result = db.update(TABLE_PARTY, values,
+                PARTIES_ID + " = ?",
+                new String[]{String.valueOf(party.getId())});
+        if (result == -1) Log.d(TAG, "updateParty: " + result + " a.k.a update failed");
+        db.close();
     }
 
     public void updateRecord(Record record){
@@ -877,7 +867,7 @@ public class BudgetDB extends SQLiteOpenHelper {
         return cursor;
     }
 
-    public void getSevenDayExpenses(ArrayList<BarEntry> data, ArrayList<String> dates){
+    public void getSevenDayExpenses(ArrayList<BarEntry> data, ArrayList<String> dates, double[] min, double[] max){
         Cursor cursor = null;
         int i=0;
         SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
@@ -905,7 +895,11 @@ public class BudgetDB extends SQLiteOpenHelper {
                 Log.d(TAG, "getSevenDayExpenses: EXCEPTION");
                 throw new RuntimeException(e);
             }
+
+            min[0] = Math.min(min[0], cursor.getDouble(1));
+            max[0] = Math.max(max[0], cursor.getDouble(1));
             data.add(new BarEntry(i, (float) cursor.getDouble(1)));
+
             i++;
         } while (cursor.moveToNext());
 
@@ -934,9 +928,13 @@ public class BudgetDB extends SQLiteOpenHelper {
 
         if (!cursor.moveToFirst()) return;
         int i=0;
+        double min = 0;
+        double max = 0;
 
         do {
             entries.add(new BarEntry(i, (float) cursor.getDouble(1)));
+            min = Math.min(min, cursor.getDouble(1));
+            max = Math.max(max, cursor.getDouble(1));
             i++;
             if (cursor.getString(0) == null) categories.add("Others");
             else categories.add(cursor.getString(0));
@@ -951,6 +949,8 @@ public class BudgetDB extends SQLiteOpenHelper {
 
         categoryEntries.setEntries(entries);
         categoryEntries.setCategoryNames(categories);
+        categoryEntries.setMin(min);
+        categoryEntries.setMax(max);
     }
 
     public void getAllDatesCategoriesAmounts(Map<String, CategoryEntries> dateCategoryEntriesMap){
@@ -978,6 +978,8 @@ public class BudgetDB extends SQLiteOpenHelper {
         if (!cursor.moveToFirst()) return;
 
         String currentDate = cursor.getString(0);
+        double min = 0;
+        double max = 0;
         int i=0;
         ArrayList<BarEntry> currentEntries = new ArrayList<>();
         ArrayList<String> currentCategories = new ArrayList<>();
@@ -989,13 +991,21 @@ public class BudgetDB extends SQLiteOpenHelper {
                     Log.d(TAG, "getSevenDayExpenses: EXCEPTION");
                     throw new RuntimeException(e);
                 }
-                dateCategoryEntriesMap.put(currentDate, new CategoryEntries(currentEntries, currentCategories));
+                CategoryEntries entries = new CategoryEntries(currentEntries, currentCategories);
+                entries.setMin(min);
+                entries.setMax(max);
+                dateCategoryEntriesMap.put(currentDate, entries);
                 currentDate = cursor.getString(0);
                 currentEntries = new ArrayList<>();
                 currentCategories = new ArrayList<>();
+                min = 0;
+                max = 0;
                 i=0;
             }
             currentEntries.add(new BarEntry(i, (float) cursor.getDouble(2)));
+            min = Math.min(min, cursor.getDouble(2));
+            max = Math.max(max, cursor.getDouble(2));
+
             i++;
             if (cursor.getString(1) == null) currentCategories.add("Others");
             else currentCategories.add(cursor.getString(1));
@@ -1008,6 +1018,18 @@ public class BudgetDB extends SQLiteOpenHelper {
             throw new RuntimeException(e);
         }
         dateCategoryEntriesMap.put(currentDate, new CategoryEntries(currentEntries, currentCategories));
+
+        for (Map.Entry<String, CategoryEntries> entry : dateCategoryEntriesMap.entrySet()){
+            Log.d(TAG, "getAllDatesCategoriesAmounts: " + entry.getKey());
+            CategoryEntries categoryEntries = entry.getValue();
+
+            for (int j=0 ; j<categoryEntries.getCategoryNames().size() ; j++){
+                Log.d(TAG, "getAllDatesCategoriesAmounts: " +
+                        categoryEntries.getCategoryNames().get(j) + " " +
+                        categoryEntries.getEntries().get(j).getY());
+            }
+
+        }
 
         cursor.close();
         db.close();

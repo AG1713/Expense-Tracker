@@ -42,8 +42,8 @@ public class MappingsActivityViewModel extends AndroidViewModel {
         repository.addMapping(mapping, callback);
     }
 
-    public void removeMapping(long id){
-        repository.removeMapping(id);
+    public void removeMapping(long id, Runnable callback){
+        repository.removeMapping(id,callback);
     }
 
     public void updateMapping(Mapping mapping, ErrorCallback callback){

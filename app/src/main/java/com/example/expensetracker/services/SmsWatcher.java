@@ -29,10 +29,9 @@ public class SmsWatcher extends Service {
                         NotificationManager.IMPORTANCE_LOW
                 ));
         Notification.Builder notification = new Notification.Builder(this, getString(R.string.persistent_notification_channel))
-                .setContentTitle("Content Title")
-                .setContentText("Context Text")
-                .setSubText("SubText")
-                .setSmallIcon(R.drawable.baseline_notifications_none_24);
+                .setContentTitle("Expense Tracker")
+                .setContentText("Tracking UPI messages")
+                .setSmallIcon(R.drawable.app_icon);
 
         startForeground(1, notification.build());
         Log.d(TAG, "Service Started");

@@ -36,6 +36,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.function.Consumer;
 
 public class PartiesFragment extends Fragment {
+    private static final String TAG = "PartiesFragment";
     FragmentPartiesBinding binding;
     MainActivityViewModel viewModel;
     ListView listView;
@@ -51,6 +52,8 @@ public class PartiesFragment extends Fragment {
         binding = DataBindingUtil.inflate(getLayoutInflater(), R.layout.fragment_parties, container, false);
         viewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
         listView = binding.listview;
+        TextView emptyView = binding.emptyTextView;
+        listView.setEmptyView(emptyView);
         viewModel.getParties().observe(getViewLifecycleOwner(), new Observer<Cursor>() {
             @Override
             public void onChanged(Cursor cursor) {
@@ -93,7 +96,7 @@ public class PartiesFragment extends Fragment {
                         viewModel.addParty(new Party(partyName, partyNickname), new ErrorCallback() {
                             @Override
                             public void onSuccess() {
-                                getActivity().runOnUiThread(() -> dialog.dismiss());
+                                viewModel.getAllPartiesWithAmount(() -> getActivity().runOnUiThread(() -> dialog.dismiss()));
                             }
 
                             @Override
@@ -135,6 +138,7 @@ public class PartiesFragment extends Fragment {
                     updatePartyBtn.setOnClickListener(v -> {
                         String name = partyName.getText().toString();
                         String nickname = partyNickname.getText().toString();
+                        selectedParty.moveToPosition(position); // Idk why, the cursor seems to go on step forward if i didnt do this
 
                         if (name.isEmpty() || name.matches("\\s+")){
                             Toast.makeText(getContext(), "Party name cannot be empty", Toast.LENGTH_SHORT).show();
@@ -143,10 +147,12 @@ public class PartiesFragment extends Fragment {
                         } else {
                             Party party = new Party(name, nickname);
                             party.setId(selectedParty.getLong(0));
+                            Log.d(TAG, "onCreateView4: " + selectedParty.getLong(0));
                             viewModel.updateParty(party, new ErrorCallback() {
                                 @Override
                                 public void onSuccess() {
-                                    getActivity().runOnUiThread(() -> dialog.dismiss());
+                                    viewModel.getAllPartiesWithAmount(() -> getActivity().runOnUiThread(() -> dialog.dismiss()));
+
                                 }
 
                                 @Override
@@ -158,14 +164,12 @@ public class PartiesFragment extends Fragment {
                         }
                     });
 
-
-
                     return true;
                 }
                 else if (item.getItemId() == R.id.menu_delete){
                     Cursor selectedParty = viewModel.getParties().getValue();
                     selectedParty.moveToPosition(position);
-                    viewModel.removeParty(selectedParty.getLong(0));
+                    viewModel.removeParty(selectedParty.getLong(0), () -> dialog.dismiss());
                     return true;
                 }
                 else return false;

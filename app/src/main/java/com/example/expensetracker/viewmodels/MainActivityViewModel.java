@@ -66,11 +66,11 @@ public class MainActivityViewModel extends AndroidViewModel {
         repository.addGoal(goal, callback);
     }
 
-    public void removeCategory(long id){
-        repository.removeCategory(id);
+    public void removeCategory(long id, Runnable callback){
+        repository.removeCategory(id, callback);
     }
-    public void removeParty(long id){
-        repository.removeParty(id);
+    public void removeParty(long id, Runnable callback){
+        repository.removeParty(id, callback);
     }
 
     public void removeAccount(long id){
@@ -85,8 +85,8 @@ public class MainActivityViewModel extends AndroidViewModel {
     public void updateParty(Party party, ErrorCallback callback){
         repository.updateParty(party, callback);
     }
-    public void updateCategory(Category category){
-        repository.updateCategory(category);
+    public void updateCategory(Category category, ErrorCallback callback){
+        repository.updateCategory(category, callback);
     }
     public void updateRecord(Record record, Long old_category_id, double amount){
         repository.updateRecord(record, old_category_id, amount);
@@ -144,8 +144,8 @@ public class MainActivityViewModel extends AndroidViewModel {
             callback.run();
         });
     }
-    public void getSevenDayExpense(ArrayList<BarEntry> entries, ArrayList<String> dates, Runnable callback){
-        repository.getSevenDayExpenses(entries, dates, callback);
+    public void getSevenDayExpense(ArrayList<BarEntry> entries, ArrayList<String> dates, double[] min, double[] max, Runnable callback){
+        repository.getSevenDayExpenses(entries, dates, min, max, callback);
     }
     public void getAllDatesCategoriesAmounts(Map<String, CategoryEntries> dateCategoryEntriesMap){
         repository.getAllDatesCategoriesAmounts(dateCategoryEntriesMap);

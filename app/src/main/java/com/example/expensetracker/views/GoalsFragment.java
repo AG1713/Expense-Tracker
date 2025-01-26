@@ -62,6 +62,8 @@ public class GoalsFragment extends Fragment {
         listView = binding.listView;
         swipeRefreshLayout = binding.swipeRefreshLayout;
         fab = binding.fab;
+        TextView emptyView = binding.emptyTextView;
+        listView.setEmptyView(emptyView);
 
         viewModel.getGoals().observe(getViewLifecycleOwner(), cursor -> {
             if (cursor != null){
@@ -234,6 +236,9 @@ public class GoalsFragment extends Fragment {
         Cursor cursor = viewModel.getGoals().getValue();
         cursor.moveToPosition(i);
         viewModel.removeGoal(cursor.getLong(0));
+        viewModel.getAllGoals(() -> {
+            getActivity().runOnUiThread(() -> Toast.makeText(getContext(), "Goal deleted", Toast.LENGTH_SHORT).show());
+        });
     }
 
 }

@@ -18,9 +18,10 @@
         android:id="@+id/mapping_amount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="15dp"
+        android:layout_marginTop="15dp"
+        android:layout_marginStart="200dp"
         android:text="Amount"
-        app:layout_constraintStart_toEndOf="@id/mapping_party"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView

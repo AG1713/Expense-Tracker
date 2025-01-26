@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import com.example.expensetracker.ErrorCallback;
 import com.example.expensetracker.repository.database.Account;
@@ -92,15 +93,21 @@ public class Repository {
         });
     }
 
-    public void removeCategory(long id){
-        executor.execute(() -> db.deleteCategory(id));
+    public void removeCategory(long id, Runnable callback){
+        executor.execute(() -> {
+            db.deleteCategory(id);
+            callback.run();
+        });
     }
 
     public void removeAccount(long id) {
         executor.execute(() -> db.deleteAccount(id));
     }
-    public void removeParty(long id){
-        executor.execute(() -> db.deleteParty(id));
+    public void removeParty(long id, Runnable callback){
+        executor.execute(() -> {
+            db.deleteParty(id);
+            callback.run();
+        });
     }
 
     public void removeRecord(long id, Long category_id, double amount){
@@ -111,12 +118,24 @@ public class Repository {
         executor.execute(() -> db.deleteGoal(id));
     }
 
-    public void removeMapping(long id) {
-        executor.execute(() -> db.deleteMapping(id));
+    public void removeMapping(long id, Runnable callback) {
+        executor.execute(() -> {
+            db.deleteMapping(id);
+            callback.run();
+        });
     }
 
-    public void updateCategory(Category category){
-        executor.execute(() -> db.updateCategory(category));
+    public void updateCategory(Category category, ErrorCallback callback){
+        executor.execute(() -> {
+            try {
+                db.updateCategory(category);
+                callback.onSuccess();
+                Log.d("BudgetDB", "updateCategory: reached");
+            }
+            catch (SQLiteException e){
+                callback.onError(e);
+            }
+        });
     }
 
     public void updateParty(Party party, ErrorCallback callback){
@@ -228,9 +247,9 @@ public class Repository {
         });
     }
 
-    public void getSevenDayExpenses(ArrayList<BarEntry> entries, ArrayList<String> dates, Runnable callback){
+    public void getSevenDayExpenses(ArrayList<BarEntry> entries, ArrayList<String> dates, double[] min, double[] max, Runnable callback){
         executor.execute(() -> {
-            db.getSevenDayExpenses(entries, dates);
+            db.getSevenDayExpenses(entries, dates, min, max);
             callback.run();
         });
     }

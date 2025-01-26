@@ -1,6 +1,7 @@
 package com.example.expensetracker.views;
 
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.util.Log;
@@ -12,6 +13,8 @@ import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -22,6 +25,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.expensetracker.ErrorCallback;
+import android.Manifest;
 import com.example.expensetracker.R;
 import com.example.expensetracker.databinding.ActivityMainBinding;
 import com.example.expensetracker.repository.database.Account;
@@ -41,6 +45,7 @@ import com.google.android.material.navigation.NavigationBarView;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
+    private static final int PERMISSION_REQUEST_CODE = 123;
     MainActivityViewModel viewModel;
     ActivityMainBinding binding;
     private final String TAG = "MainActivity";
@@ -60,7 +65,8 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        startForegroundService(new Intent(this, SmsWatcher.class));
+        checkPermissions();
+
         viewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
         toolbar = binding.toolbar;
 
@@ -213,7 +219,55 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "onCreate: " + e.getMessage());
         }
 
-
-
     }
+
+    private void checkPermissions() {
+        // List of permissions to check
+        String[] permissions = {
+                Manifest.permission.POST_NOTIFICATIONS,  // Notification (Android 13+)
+                Manifest.permission.RECEIVE_SMS,        // Receive SMS
+                Manifest.permission.READ_SMS            // Read SMS
+        };
+
+        // List of permissions to request
+        ArrayList<String> permissionsToRequest = new ArrayList<>();
+
+        // Check each permission
+        for (String permission : permissions) {
+            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(permission);
+            }
+        }
+
+        // Request permissions if needed
+        if (!permissionsToRequest.isEmpty()) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    permissionsToRequest.toArray(new String[0]),
+                    PERMISSION_REQUEST_CODE
+            );
+        }
+        else {
+            startForegroundService(new Intent(this, SmsWatcher.class));
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            for (int i = 0; i < permissions.length; i++) {
+                if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                    // Permission granted
+                    startForegroundService(new Intent(this, SmsWatcher.class));
+                } else {
+                    // Permission denied
+                    System.out.println("Permission denied: " + permissions[i]);
+                }
+            }
+        }
+    }
+
+
 }

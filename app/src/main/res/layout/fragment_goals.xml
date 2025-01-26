@@ -9,6 +9,19 @@
         android:layout_height="match_parent"
         tools:context=".views.GoalsFragment">
 
+        <TextView
+            android:id="@+id/emptyTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="No items to display"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@+id/swipe_refresh_layout"
+            app:layout_constraintEnd_toEndOf="@+id/swipe_refresh_layout"
+            app:layout_constraintStart_toStartOf="@+id/swipe_refresh_layout"
+            app:layout_constraintTop_toTopOf="@id/swipe_refresh_layout"/>
+
+
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
             android:id="@+id/swipe_refresh_layout"
             android:layout_width="match_parent"
