@@ -8,7 +8,6 @@ import android.os.Bundle;
 
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -28,7 +27,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.expensetracker.CustomListener;
+import com.example.expensetracker.views.customCallbacks.CategoryMenuCallback;
 import com.example.expensetracker.ErrorCallback;
 import com.example.expensetracker.R;
 import com.example.expensetracker.databinding.FragmentCategoriesBinding;
@@ -39,7 +38,6 @@ import com.example.expensetracker.viewmodels.MainActivityViewModel;
 import com.example.expensetracker.views.adapters.CategoriesAdapter;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
-import java.util.ArrayList;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -71,7 +69,7 @@ public class CategoriesFragment extends Fragment {
             if (categoryDisplays != null){
                 if (adapter!= null) adapter.setCategoryDisplays(categoryDisplays);
                 else {
-                    adapter = new CategoriesAdapter(categoryDisplays, new CustomListener() {
+                    adapter = new CategoriesAdapter(categoryDisplays, new CategoryMenuCallback() {
                         @Override
                         public void onUpdate(CategoryDisplay categoryDisplay) {
                             dialog = new Dialog(getContext());

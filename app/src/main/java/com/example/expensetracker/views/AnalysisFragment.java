@@ -148,6 +148,7 @@ public class AnalysisFragment extends Fragment {
     }
 
     private void setDefaultCategoriesChartData(CategoryEntries categoryEntries){
+        if (categoryEntries.getEntries() == null || categoryEntries.getEntries().isEmpty()) return;
         // This is not working properly
         BarDataSet barDataSet = createBarDataSet(categoryEntries.getEntries(), "All days expenses");
         BarData barData = new BarData(barDataSet);

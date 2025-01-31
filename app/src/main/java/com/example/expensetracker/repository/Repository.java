@@ -17,6 +17,7 @@ import com.example.expensetracker.repository.displayEntities.CategoryDisplay;
 import com.example.expensetracker.repository.database.Party;
 import com.example.expensetracker.repository.database.Record;
 import com.example.expensetracker.repository.displayEntities.CategoryEntries;
+import com.example.expensetracker.repository.displayEntities.ChartData;
 import com.github.mikephil.charting.data.BarEntry;
 
 import java.util.ArrayList;
@@ -198,8 +199,8 @@ public class Repository {
         executor.execute(() -> callback.accept(db.getAllMappings()));
     }
 
-    public void getAllPartiesWithAmount(Consumer<Cursor> callback){
-        executor.execute(() -> callback.accept(db.getAllPartiesWithAmounts()));
+    public void getAllPartiesWithAmount(ChartData partiesData, Consumer<Cursor> callback){
+        executor.execute(() -> callback.accept(db.getAllPartiesWithAmounts(partiesData)));
     }
 
 //    public Cursor getAllPartiesWithAmount(){
@@ -215,8 +216,8 @@ public class Repository {
         });
     }
 
-    public void getAllAccountsWithAmounts(Consumer<Cursor> callback){
-        executor.execute(() -> callback.accept(db.getAllAccountsWithAmounts()));
+    public void getAllAccountsWithAmounts(ChartData chartData, Consumer<Cursor> callback){
+        executor.execute(() -> callback.accept(db.getAllAccountsWithAmounts(chartData)));
     }
 
     public void getAllCategories(Consumer<Cursor> callback){

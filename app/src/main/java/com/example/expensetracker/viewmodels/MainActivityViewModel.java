@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteException;
 import android.util.Log;
+import android.util.Pair;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -20,6 +21,7 @@ import com.example.expensetracker.repository.displayEntities.CategoryDisplay;
 import com.example.expensetracker.repository.database.Party;
 import com.example.expensetracker.repository.database.Record;
 import com.example.expensetracker.repository.displayEntities.CategoryEntries;
+import com.example.expensetracker.repository.displayEntities.ChartData;
 import com.github.mikephil.charting.data.BarEntry;
 
 import java.util.ArrayList;
@@ -30,7 +32,9 @@ public class MainActivityViewModel extends AndroidViewModel {
     private final Repository repository;
     private MutableLiveData<Cursor> records = new MutableLiveData<>();
     private MutableLiveData<Cursor> parties = new MutableLiveData<>();
+    private MutableLiveData<ChartData> partiesChartData = new MutableLiveData<>();
     private MutableLiveData<Cursor> accounts = new MutableLiveData<>();
+    private MutableLiveData<ChartData> accountsChartData = new MutableLiveData<>();
     private MutableLiveData<ArrayList<CategoryDisplay>> categories = new MutableLiveData<>();
     private MutableLiveData<Cursor> goals = new MutableLiveData<>();
 
@@ -44,8 +48,18 @@ public class MainActivityViewModel extends AndroidViewModel {
         repository.getAllRecords(cursor -> {
             records.postValue(cursor);
         });
-        repository.getAllPartiesWithAmount(cursor -> parties.postValue(cursor));
-        repository.getAllAccountsWithAmounts(cursor -> accounts.postValue(cursor));
+
+        ChartData partiesData = new ChartData();
+        repository.getAllPartiesWithAmount(partiesData, cursor -> {
+            parties.postValue(cursor);
+            partiesChartData.postValue(partiesData);
+        });
+
+        ChartData accountsData = new ChartData();
+        repository.getAllAccountsWithAmounts(accountsData, cursor -> {
+            accounts.postValue(cursor);
+            accountsChartData.postValue(accountsData);
+        });
         repository.getAllGoals(cursor -> goals.postValue(cursor));
 
     }
@@ -98,10 +112,6 @@ public class MainActivityViewModel extends AndroidViewModel {
         repository.addTransaction(record, partyName, accountNo);
     };
 
-    public Cursor getAllRecords(){
-        return repository.getAllRecords();
-    }
-
     public void getAllRecords(Runnable callback){
         repository.getAllRecords(cursor -> {
             records.postValue(cursor);
@@ -109,27 +119,25 @@ public class MainActivityViewModel extends AndroidViewModel {
         });
     }
     public void getAllPartiesWithAmount(Runnable callback){
-        repository.getAllPartiesWithAmount(cursor -> {
+        ChartData partiesData = new ChartData();
+        repository.getAllPartiesWithAmount(partiesData, cursor -> {
             parties.postValue(cursor);
+            partiesChartData.postValue(partiesData);
             callback.run();
         });
     }
     public void getAllCategoriesInDFS(Runnable callback){
-        repository.getAllCategoriesInDFS(new Consumer<ArrayList<CategoryDisplay>>() {
-            @Override
-            public void accept(ArrayList<CategoryDisplay> categoryDisplays) {
-                categories.postValue(categoryDisplays);
-                callback.run();
-            }
+        repository.getAllCategoriesInDFS(categoryDisplays -> {
+            categories.postValue(categoryDisplays);
+            callback.run();
         });
     }
     public void getAllAccountsWithAmount(Runnable callback){
-        repository.getAllAccountsWithAmounts(new Consumer<Cursor>() {
-            @Override
-            public void accept(Cursor cursor) {
-                accounts.postValue(cursor);
-                callback.run();
-            }
+        ChartData accountsData = new ChartData();
+        repository.getAllAccountsWithAmounts(accountsData, cursor -> {
+            accounts.postValue(cursor);
+            accountsChartData.postValue(accountsData);
+            callback.run();
         });
     }
 
@@ -156,6 +164,22 @@ public class MainActivityViewModel extends AndroidViewModel {
 
     public MutableLiveData<Cursor> getRecords() {
         return records;
+    }
+
+    public MutableLiveData<ChartData> getPartiesChartData() {
+        return partiesChartData;
+    }
+
+    public void setPartiesChartData(MutableLiveData<ChartData> partiesChartData) {
+        this.partiesChartData = partiesChartData;
+    }
+
+    public MutableLiveData<ChartData> getAccountsChartData() {
+        return accountsChartData;
+    }
+
+    public void setAccountsChartData(MutableLiveData<ChartData> accountsChartData) {
+        this.accountsChartData = accountsChartData;
     }
 
     public MutableLiveData<Cursor> getParties() {

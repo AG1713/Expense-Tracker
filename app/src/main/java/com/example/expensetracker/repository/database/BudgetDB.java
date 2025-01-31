@@ -10,6 +10,7 @@ import android.util.Log;
 
 import com.example.expensetracker.repository.displayEntities.CategoryDisplay;
 import com.example.expensetracker.repository.displayEntities.CategoryEntries;
+import com.example.expensetracker.repository.displayEntities.ChartData;
 import com.github.mikephil.charting.data.BarEntry;
 
 import java.text.ParseException;
@@ -367,54 +368,6 @@ public class BudgetDB extends SQLiteOpenHelper {
         db.close();
     }
 
-    public void updateRecord(Record record){
-        ContentValues values = new ContentValues();
-        values.put(RECORDS_ACCOUNT_ID, record.getAccount_id());
-        values.put(RECORDS_DATE, record.getDate());
-        values.put(RECORDS_TIME, record.getTime());
-        values.put(RECORDS_OPERATION, record.getOperation());
-        values.put(RECORDS_AMOUNT, record.getAmount());
-        values.put(RECORDS_PARTY_ID, record.getParty());
-        values.put(RECORDS_DESCRIPTION, record.getDescription());
-        values.put(RECORDS_CATEGORY_ID, record.getCategory_id());
-
-        try {
-            SQLiteDatabase db = getWritableDatabase();
-            long result = db.update(TABLE_RECORDS, values,
-                    RECORDS_ID + " = ?",
-                    new String[]{String.valueOf(record.getId())});
-            if (result == -1) Log.d(TAG, "updateRecord: " + result + " a.k.a update failed");
-
-            Cursor cursor1 = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_RECORDS + " WHERE " +
-                    RECORDS_PARTY_ID + " = ? AND " + RECORDS_AMOUNT + " = ?", new String[]{String.valueOf(record.getParty()), String.valueOf(record.getAmount())});
-            Cursor cursor2 = db.rawQuery("SELECT * FROM " + TABLE_MAPPINGS +
-                    " WHERE " + MAPPINGS_PARTY_ID + " = ? AND " + MAPPINGS_AMOUNT + " = ?",
-                    new String[]{String.valueOf(record.getParty()), String.valueOf(record.getAmount())});
-
-            if (cursor1 != null && cursor1.moveToFirst()){
-                int recordCount = cursor1.getInt(0);
-
-                if (cursor2 != null && cursor2.moveToFirst()){
-                    if (recordCount >= 3) {
-                        updateMapping(new Mapping(cursor2.getLong(0), cursor2.getLong(1), cursor2.getDouble(2), record.getCategory_id()));
-                    }
-                }
-                else if (recordCount >= 3){
-                    Log.d(TAG, "recordCount >= 3");
-                    insertMapping(new Mapping(record.getParty(), record.getAmount(), record.getCategory_id()));
-                }
-            }
-
-            if (cursor2 != null) cursor2.close();
-            if (cursor1 != null)cursor1.close();
-
-            db.close();
-        }
-        catch (SQLiteException e){
-            Log.d(TAG, "updateRecord: " + e.getMessage());
-        }
-    }
-
     public void updateRecord(Record record, Long old_category_id, double old_goal){
         ContentValues values = new ContentValues();
         values.put(RECORDS_ACCOUNT_ID, record.getAccount_id());
@@ -704,7 +657,7 @@ public class BudgetDB extends SQLiteOpenHelper {
         return null;
     }
 
-    public Cursor getAllPartiesWithAmounts(){
+    public Cursor getAllPartiesWithAmounts(ChartData partiesData){
         Cursor cursor = null;
 
         try {
@@ -712,7 +665,11 @@ public class BudgetDB extends SQLiteOpenHelper {
 
             cursor = db.rawQuery(
                     "SELECT " + TABLE_PARTY + "." + PARTIES_ID + " AS _id," + PARTIES_NAME + "," + PARTIES_NICKNAME + "," +
-                            "SUM(" + RECORDS_AMOUNT + ") AS Total " +
+                            "SUM(CASE " +
+                            "WHEN " + RECORDS_OPERATION + " = 'credited' THEN " + RECORDS_AMOUNT + " " +
+                            "WHEN " + RECORDS_OPERATION + " = 'debited' THEN -" + RECORDS_AMOUNT + " " +
+                            "ELSE 0 " +
+                            "END) AS Total " +
                             "FROM " + TABLE_PARTY + " " +
                             "LEFT JOIN " + TABLE_RECORDS + " " +
                             "ON " + TABLE_PARTY + "." + PARTIES_ID + " = " + TABLE_RECORDS + "." + RECORDS_PARTY_ID + " " +
@@ -725,10 +682,30 @@ public class BudgetDB extends SQLiteOpenHelper {
             Log.d(TAG, "getAllPartiesWithAmounts: " + e.getMessage());
         }
 
+        if (!cursor.moveToFirst()) return cursor;
+        int i=0;
+        ArrayList<BarEntry> entries = new ArrayList<>();
+        ArrayList<String> labels = new ArrayList<>();
+        float minX = 0;
+        float maxX = 0;
+        do {
+            float amount = (float) cursor.getDouble(3);
+            if (amount == 0) continue;
+            entries.add(new BarEntry(i, (float) cursor.getDouble(3)));
+            labels.add(cursor.getString(2));
+            minX = Math.min(minX, (float) cursor.getDouble(3));
+            maxX = Math.max(maxX, (float) cursor.getDouble(3));
+            i++;
+        } while (cursor.moveToNext());
+        partiesData.setEntries(entries);
+        partiesData.setLabels(labels);
+        partiesData.setMinX(minX);
+        partiesData.setMaxX(maxX);
+
         return cursor;
     }
 
-    public Cursor getAllAccountsWithAmounts(){
+    public Cursor getAllAccountsWithAmounts(ChartData accountsData){
         Cursor cursor = null;
 
         try {
@@ -736,7 +713,11 @@ public class BudgetDB extends SQLiteOpenHelper {
 
             cursor = db.rawQuery(
                     "SELECT " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID + " AS _id, " + ACCOUNTS_ACCOUNT_NO + "," +
-                            "SUM(" + RECORDS_AMOUNT + ") As Total " +
+                            "SUM(CASE " +
+                            "WHEN " + RECORDS_OPERATION + " = 'credited' THEN " + RECORDS_AMOUNT + " " +
+                            "WHEN " + RECORDS_OPERATION + " = 'debited' THEN -" + RECORDS_AMOUNT + " " +
+                            "ELSE 0 " +
+                            "END) AS Total " +
                             "FROM " + TABLE_ACCOUNTS + " " +
                             "LEFT JOIN " + TABLE_RECORDS + " " +
                             "ON " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID + " = " +
@@ -749,6 +730,26 @@ public class BudgetDB extends SQLiteOpenHelper {
         catch (SQLiteException e){
             Log.d(TAG, "getAllAccountsWithAmounts: " + e.getMessage());
         }
+
+        if (!cursor.moveToFirst()) return cursor;
+        int i=0;
+        ArrayList<BarEntry> entries = new ArrayList<>();
+        ArrayList<String> labels = new ArrayList<>();
+        float minX = 0;
+        float maxX = 0;
+        do {
+            if (cursor.getDouble(2) == 0) continue;
+            entries.add(new BarEntry(i, (float) cursor.getDouble(2)));
+            labels.add(cursor.getString(1));
+            minX = Math.min(minX, (float) cursor.getDouble(2));
+            maxX = Math.max(maxX, (float) cursor.getDouble(2));
+            Log.d(TAG, "Value Check: " + (float) cursor.getDouble(2));
+            i++;
+        }while (cursor.moveToNext());
+        accountsData.setEntries(entries);
+        accountsData.setLabels(labels);
+        accountsData.setMinX(minX);
+        accountsData.setMaxX(maxX);
 
         return cursor;
     }

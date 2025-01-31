@@ -2,6 +2,7 @@ package com.example.expensetracker.views;
 
 import android.app.Dialog;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.os.Bundle;
 
 import androidx.databinding.DataBindingUtil;
@@ -10,6 +11,7 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -28,11 +30,21 @@ import com.example.expensetracker.ErrorCallback;
 import com.example.expensetracker.R;
 import com.example.expensetracker.databinding.FragmentAccountsBinding;
 import com.example.expensetracker.repository.database.Account;
+import com.example.expensetracker.repository.displayEntities.ChartData;
 import com.example.expensetracker.viewmodels.MainActivityViewModel;
 import com.example.expensetracker.views.adapters.AccountsAdapter;
+import com.github.mikephil.charting.charts.HorizontalBarChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.github.mikephil.charting.formatter.ValueFormatter;
+import com.github.mikephil.charting.utils.ColorTemplate;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 public class AccountsFragment extends Fragment {
+    private static final String TAG = "AccountsFragment";
     FragmentAccountsBinding binding;
     MainActivityViewModel viewModel;
     ListView listView;
@@ -40,6 +52,7 @@ public class AccountsFragment extends Fragment {
     SwipeRefreshLayout swipeRefreshLayout;
     FloatingActionButton fab;
     Dialog dialog;
+    HorizontalBarChart barChart;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -47,8 +60,9 @@ public class AccountsFragment extends Fragment {
 
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_accounts, container, false);
         viewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
-        listView = binding.recyclerView;
+        listView = binding.listview;
         TextView emptyView = binding.emptyTextView;
+        barChart = binding.horizontalBarChart;
         listView.setEmptyView(emptyView);
         viewModel.getAccounts().observe(getViewLifecycleOwner(), cursor -> {
             if (cursor != null){
@@ -56,6 +70,57 @@ public class AccountsFragment extends Fragment {
                 else {
                     adapter = new AccountsAdapter(getContext(), cursor, 0);
                     listView.setAdapter(adapter);
+                }
+            }
+        });
+        
+        viewModel.getAccountsChartData().observe(getViewLifecycleOwner(), new Observer<ChartData>() {
+            @Override
+            public void onChanged(ChartData chartData) {
+                if (chartData.getEntries() != null){
+                    BarDataSet barDataSet = new BarDataSet(chartData.getEntries(), "Label");
+                    barDataSet.setColors(ColorTemplate.MATERIAL_COLORS);
+                    barDataSet.setValueTextColor(Color.WHITE);
+                    barDataSet.setValueTextSize(12f);
+                    BarData barData = new BarData(barDataSet);
+                    barData.setBarWidth(0.75f);
+                    barChart.setData(barData);
+
+                    ViewGroup.LayoutParams params = barChart.getLayoutParams();
+                    params.height = chartData.getEntries().size()*175;
+                    barChart.setLayoutParams(params);
+
+                    XAxis xAxis = barChart.getXAxis();
+                    xAxis.setValueFormatter(new IndexAxisValueFormatter(chartData.getLabels()));
+                    xAxis.setTextColor(Color.WHITE);
+                    xAxis.setGranularity(1f);
+
+                    YAxis yAxis = barChart.getAxisLeft();
+                    yAxis.setTextColor(Color.WHITE);
+                    yAxis.setGranularity(1f);
+                    yAxis.setInverted(true);
+                    yAxis.setValueFormatter(new ValueFormatter() {
+                        @Override
+                        public String getFormattedValue(float value) {
+                            if (value < 0) {
+                                return "" + Math.abs((int) value); // Custom label for negative X values
+                            } else if (value > 0) {
+                                return "+" + (int) value; // Custom label for positive X values
+                            } else {
+                                return "0"; // Custom label for zero
+                            }
+                        }
+                    });
+                    yAxis.setAxisMinimum(chartData.getMinX() - (Math.abs(chartData.getMinX())*0.3f));
+                    yAxis.setAxisMaximum(chartData.getMaxX() + (Math.abs(chartData.getMaxX())*0.3f));
+
+                    barChart.getLegend().setEnabled(false);
+                    barChart.getAxisRight().setEnabled(false);
+                    barChart.setDrawValueAboveBar(true);
+                    barChart.setFitBars(true);
+                    barChart.getDescription().setText("0 values excluded");
+                    barChart.getDescription().setTextColor(Color.WHITE);
+                    barChart.invalidate();
                 }
             }
         });
