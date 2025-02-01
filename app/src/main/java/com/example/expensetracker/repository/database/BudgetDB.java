@@ -754,29 +754,38 @@ public class BudgetDB extends SQLiteOpenHelper {
         return cursor;
     }
 
-    public ArrayList<CategoryDisplay> getCategoriesInDFS(){
+    public ArrayList<CategoryDisplay> getCategoriesInDFS(ChartData categoriesData){
         Cursor cursor = null;
-        ArrayList<Category> categories = new ArrayList<>();
-        Map<Long, ArrayList<Category>> categoryMap = new HashMap<>();
+        Map<Long, ArrayList<CategoryDisplay>> categoryMap = new HashMap<>(); // CategoryDisplay because we need amount too
         ArrayList<CategoryDisplay> categoryDisplays = new ArrayList<>();
 
         try {
             SQLiteDatabase db = getReadableDatabase();
             cursor = db.rawQuery(
-                    "SELECT * FROM " + TABLE_CATEGORIES + " " +
+                    "SELECT " + TABLE_CATEGORIES + "." + CATEGORIES_ID + ", " + CATEGORIES_NAME + "," + CATEGORIES_PARENT_ID + "," +
+                            "SUM(CASE " +
+                            "WHEN " + RECORDS_OPERATION + " = 'credited' THEN " + RECORDS_AMOUNT + " " +
+                            "WHEN " + RECORDS_OPERATION + " = 'debited' THEN -" + RECORDS_AMOUNT + " " +
+                            "ELSE 0 " +
+                            "END) AS Total " +
+                            " FROM " + TABLE_CATEGORIES + " " +
+                            "LEFT JOIN " + TABLE_RECORDS + " " +
+                            "ON " + TABLE_RECORDS + "." + RECORDS_CATEGORY_ID + " = " + TABLE_CATEGORIES + "." + CATEGORIES_ID + " " +
+                            "GROUP BY " + TABLE_CATEGORIES + "." + CATEGORIES_ID + " " +
                             "ORDER BY " + CATEGORIES_PARENT_ID + " ASC",
                     null
             );
-
-            Log.d(TAG, "Categories count: " + cursor.getCount());
 
             if (cursor.moveToFirst()){
                 do {
                     Long parent_id = (cursor.getLong(2) == 0) ? null : cursor.getLong(2);
                     Category category = new Category(cursor.getString(1), parent_id);
                     category.setId(cursor.getLong(0));
+                    CategoryDisplay categoryDisplay = new CategoryDisplay(category, -1, cursor.getDouble(3));
                     categoryMap.putIfAbsent(parent_id, new ArrayList<>());
-                    categoryMap.get(category.getParent_id()).add(category);
+                    categoryMap.get(category.getParent_id()).add(categoryDisplay);
+
+                    Log.d(TAG, "getCategoriesInDFS: " + categoryDisplay.getAmount());
                 }while(cursor.moveToNext());
             }
 
@@ -789,25 +798,43 @@ public class BudgetDB extends SQLiteOpenHelper {
             Log.d(TAG, "getCategoriesInDFS: " + e.getMessage());
         }
 
-        getDFS(categoryMap, categoryDisplays, null, 0, 1);
+        double[] amount = {0};
+        getDFS(categoryMap, categoryDisplays, categoriesData, null, 1, amount);
 
         for (CategoryDisplay i : categoryDisplays){
-            Log.d(TAG, i.getCategory().getId() + " " + i.getCategory().getName() + " " + i.getCategory().getParent_id() + " " + i.getLevel());
+            Log.d(TAG, i.getCategory().getId() + " " + i.getCategory().getName() + " " + i.getCategory().getParent_id() + " " + i.getLevel() + " " + i.getAmount());
         }
 
         return categoryDisplays;
     }
 
-    private void getDFS (Map<Long, ArrayList<Category>> categoryMap, ArrayList<CategoryDisplay> categoryDisplays, Long parent_id, double amount, int level){
+    private void getDFS (Map<Long, ArrayList<CategoryDisplay>> categoryMap, ArrayList<CategoryDisplay> categoryDisplays, ChartData categoriesData, Long parent_id, int level, double[] amount){
         if (!categoryMap.containsKey(parent_id)) {
             return;
         }
 
-        for (Category category : categoryMap.get(parent_id)){
-            categoryDisplays.add(new CategoryDisplay(category, level));
-            getDFS(categoryMap, categoryDisplays, category.getId(), 0, level+1);
+        double subtotal = 0; // Store sum of all children
+        int i = 0;
+
+        for (CategoryDisplay categoryDisplay : categoryMap.get(parent_id)){
+            categoryDisplay.setLevel(level);
+            categoryDisplays.add(categoryDisplay);
+
+            double[] childAmount = {0}; // Separate array for child recursion
+            getDFS(categoryMap, categoryDisplays, categoriesData, categoryDisplay.getCategory().getId(), level+1, childAmount);
+
+            categoryDisplay.setAmount(categoryDisplay.getAmount() + childAmount[0]); // Include child amounts
+            if (level == 1){
+                categoriesData.addEntry(new BarEntry(i, (float) categoryDisplay.getAmount()));
+                categoriesData.addLabel(categoryDisplay.getCategory().getName());
+                categoriesData.setMinX(Math.min(categoriesData.getMinX(), (float) categoryDisplay.getAmount()));
+                categoriesData.setMaxX(Math.max(categoriesData.getMaxX(), (float) categoryDisplay.getAmount()));
+                i++;
+            }
+            subtotal += categoryDisplay.getAmount();
         }
 
+        amount[0] += subtotal; // Pass subtotal to parent
     }
 
     public Cursor getAllCategories() throws SQLiteException{

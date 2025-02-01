@@ -1,8 +1,10 @@
 package com.example.expensetracker.views;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
@@ -11,6 +13,7 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
@@ -53,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     ViewPager2 viewPager;
     ViewPagerAdapter viewPagerAdapter;
     Toolbar toolbar;
+    SharedPreferences preferences;
 
 
     @Override
@@ -65,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        preferences = getSharedPreferences("Settings",MODE_PRIVATE);
         checkPermissions();
 
         viewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
@@ -85,6 +90,18 @@ public class MainActivity extends AppCompatActivity {
 
         viewPager.setCurrentItem(2, false);
         bottomNavigationView.setSelectedItemId(R.id.Records);
+
+        toolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                if (item.getItemId() == R.id.settings){
+                    Intent i = new Intent(MainActivity.this, SettingsActivity.class);
+                    startActivity(i);
+                }
+
+                return false;
+            }
+        });
 
         bottomNavigationView.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
             @Override
@@ -248,7 +265,9 @@ public class MainActivity extends AppCompatActivity {
             );
         }
         else {
-            startForegroundService(new Intent(this, SmsWatcher.class));
+            if (preferences.getBoolean(getString(R.string.persistent_notification_enabled), false)){
+                startForegroundService(new Intent(this, SmsWatcher.class));
+            }
         }
     }
 
@@ -260,9 +279,15 @@ public class MainActivity extends AppCompatActivity {
             for (int i = 0; i < permissions.length; i++) {
                 if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
                     // Permission granted
+                    SharedPreferences.Editor editor = preferences.edit();
+                    editor.putBoolean(getString(R.string.persistent_notification_enabled), true);
+                    editor.apply();
                     startForegroundService(new Intent(this, SmsWatcher.class));
                 } else {
                     // Permission denied
+                    SharedPreferences.Editor editor = preferences.edit();
+                    editor.putBoolean(getString(R.string.persistent_notification_enabled), false);
+                    editor.apply();
                     System.out.println("Permission denied: " + permissions[i]);
                 }
             }

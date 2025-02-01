@@ -55,4 +55,13 @@ public class ChartData {
     public void setMaxX(float maxX) {
         this.maxX = maxX;
     }
+
+    public void addEntry(BarEntry entry){
+        entries.add(entry);
+    }
+
+    public void addLabel(String label){
+        labels.add(label);
+    }
+
 }

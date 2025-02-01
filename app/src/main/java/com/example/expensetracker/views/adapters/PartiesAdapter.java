@@ -16,11 +16,11 @@ import com.example.expensetracker.views.customCallbacks.PartyMenuCallback;
 
 public class PartiesAdapter extends RecyclerView.Adapter<PartiesAdapter.MyViewHolder> {
     private Cursor cursor;
-    private final PartyMenuCallback listener;
+    private final PartyMenuCallback menuCallback;
 
-    public PartiesAdapter(Cursor cursor, PartyMenuCallback listener) {
+    public PartiesAdapter(Cursor cursor, PartyMenuCallback menuCallback) {
         this.cursor = cursor;
-        this.listener = listener;
+        this.menuCallback = menuCallback;
     }
 
     public static class MyViewHolder extends RecyclerView.ViewHolder{
@@ -60,11 +60,11 @@ public class PartiesAdapter extends RecyclerView.Adapter<PartiesAdapter.MyViewHo
             menu.setOnMenuItemClickListener(item -> {
 
                 if (item.getItemId() == R.id.menu_update){
-                    listener.onUpdate(party);
+                    menuCallback.onUpdate(party);
                     return true;
                 }
                 else if (item.getItemId() == R.id.menu_delete){
-                    listener.onDelete(party);
+                    menuCallback.onDelete(party);
                     return true;
                 }
 

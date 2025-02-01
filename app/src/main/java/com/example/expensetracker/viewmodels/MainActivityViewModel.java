@@ -36,6 +36,7 @@ public class MainActivityViewModel extends AndroidViewModel {
     private MutableLiveData<Cursor> accounts = new MutableLiveData<>();
     private MutableLiveData<ChartData> accountsChartData = new MutableLiveData<>();
     private MutableLiveData<ArrayList<CategoryDisplay>> categories = new MutableLiveData<>();
+    private MutableLiveData<ChartData> categoriesChartData = new MutableLiveData<>();
     private MutableLiveData<Cursor> goals = new MutableLiveData<>();
 
     private final String TAG = "MainActivityViewModel";
@@ -44,7 +45,11 @@ public class MainActivityViewModel extends AndroidViewModel {
         super(application);
         repository = new Repository(application.getApplicationContext());
 
-        repository.getAllCategoriesInDFS(categoryDisplays -> categories.postValue(categoryDisplays));
+        ChartData categoriesData = new ChartData();
+        repository.getAllCategoriesInDFS(categoriesData, categoryDisplays -> {
+            categories.postValue(categoryDisplays);
+            categoriesChartData.postValue(categoriesData);
+        });
         repository.getAllRecords(cursor -> {
             records.postValue(cursor);
         });
@@ -87,8 +92,8 @@ public class MainActivityViewModel extends AndroidViewModel {
         repository.removeParty(id, callback);
     }
 
-    public void removeAccount(long id){
-        repository.removeAccount(id);
+    public void removeAccount(long id, Runnable callback){
+        repository.removeAccount(id, callback);
     }
     public void removeRecord(long id, Long category_id, double amount){
         repository.removeRecord(id, category_id, amount);
@@ -127,8 +132,10 @@ public class MainActivityViewModel extends AndroidViewModel {
         });
     }
     public void getAllCategoriesInDFS(Runnable callback){
-        repository.getAllCategoriesInDFS(categoryDisplays -> {
+        ChartData categoriesData = new ChartData();
+        repository.getAllCategoriesInDFS(categoriesData, categoryDisplays -> {
             categories.postValue(categoryDisplays);
+            categoriesChartData.postValue(categoriesData);
             callback.run();
         });
     }
@@ -196,5 +203,13 @@ public class MainActivityViewModel extends AndroidViewModel {
 
     public MutableLiveData<Cursor> getGoals() {
         return goals;
+    }
+
+    public MutableLiveData<ChartData> getCategoriesChartData() {
+        return categoriesChartData;
+    }
+
+    public void setCategoriesChartData(MutableLiveData<ChartData> categoriesChartData) {
+        this.categoriesChartData = categoriesChartData;
     }
 }

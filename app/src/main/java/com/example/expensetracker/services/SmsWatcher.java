@@ -21,6 +21,14 @@ public class SmsWatcher extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
+        if (intent != null && "STOP_SERVICE".equals(intent.getAction())){
+            stopForeground(true);
+            stopSelf();
+            Log.d(TAG, "Service stopped");
+
+            return START_NOT_STICKY;
+        }
+
         // For mandatory persistent notification
         ((NotificationManager) getSystemService(NOTIFICATION_SERVICE))
                 .createNotificationChannel(new NotificationChannel(
@@ -44,5 +52,9 @@ public class SmsWatcher extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    public void manageService(boolean flag){
+
     }
 }

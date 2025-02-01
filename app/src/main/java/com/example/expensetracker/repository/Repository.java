@@ -101,8 +101,11 @@ public class Repository {
         });
     }
 
-    public void removeAccount(long id) {
-        executor.execute(() -> db.deleteAccount(id));
+    public void removeAccount(long id, Runnable callback) {
+        executor.execute(() -> {
+            db.deleteAccount(id);
+            callback.run();
+        });
     }
     public void removeParty(long id, Runnable callback){
         executor.execute(() -> {
@@ -207,11 +210,11 @@ public class Repository {
 //        return db.getAllPartiesWithAmounts();
 //    }
 
-    public void getAllCategoriesInDFS(Consumer<ArrayList<CategoryDisplay>> callback){
+    public void getAllCategoriesInDFS(ChartData categoriesData, Consumer<ArrayList<CategoryDisplay>> callback){
         executor.execute(new Runnable() {
             @Override
             public void run() {
-                callback.accept(db.getCategoriesInDFS());
+                callback.accept(db.getCategoriesInDFS(categoriesData));
             }
         });
     }

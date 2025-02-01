@@ -4,10 +4,12 @@ import android.app.Dialog;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.MergeCursor;
+import android.graphics.Color;
 import android.os.Bundle;
 
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -27,6 +29,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.expensetracker.repository.displayEntities.ChartData;
 import com.example.expensetracker.views.customCallbacks.CategoryMenuCallback;
 import com.example.expensetracker.ErrorCallback;
 import com.example.expensetracker.R;
@@ -36,6 +39,14 @@ import com.example.expensetracker.repository.database.Category;
 import com.example.expensetracker.repository.displayEntities.CategoryDisplay;
 import com.example.expensetracker.viewmodels.MainActivityViewModel;
 import com.example.expensetracker.views.adapters.CategoriesAdapter;
+import com.github.mikephil.charting.charts.HorizontalBarChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.github.mikephil.charting.formatter.ValueFormatter;
+import com.github.mikephil.charting.utils.ColorTemplate;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.Objects;
@@ -49,6 +60,7 @@ public class CategoriesFragment extends Fragment {
     SwipeRefreshLayout swipeRefreshLayout;
     FloatingActionButton fab;
     Dialog dialog;
+    HorizontalBarChart barChart;
     private final String TAG = "CategoriesFragment";
 
 
@@ -62,12 +74,63 @@ public class CategoriesFragment extends Fragment {
         recyclerView = binding.recyclerView;
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.addItemDecoration(new DividerItemDecoration(getContext(), DividerItemDecoration.VERTICAL));
-
+        barChart = binding.horizontalBarChart;
         fab = binding.fab;
+
+        viewModel.getCategoriesChartData().observe(getViewLifecycleOwner(), new Observer<ChartData>() {
+            @Override
+            public void onChanged(ChartData chartData) {
+                if (chartData.getEntries() != null){
+                    BarDataSet barDataSet = new BarDataSet(chartData.getEntries(), "Label");
+                    barDataSet.setColors(ColorTemplate.MATERIAL_COLORS);
+                    barDataSet.setValueTextColor(Color.WHITE);
+                    barDataSet.setValueTextSize(12f);
+                    BarData barData = new BarData(barDataSet);
+                    barData.setBarWidth(0.75f);
+                    barChart.setData(barData);
+
+                    ViewGroup.LayoutParams params = barChart.getLayoutParams();
+                    params.height = chartData.getEntries().size()*175;
+                    barChart.setLayoutParams(params);
+
+                    XAxis xAxis = barChart.getXAxis();
+                    xAxis.setValueFormatter(new IndexAxisValueFormatter(chartData.getLabels()));
+                    xAxis.setTextColor(Color.WHITE);
+                    xAxis.setGranularity(1f);
+
+                    YAxis yAxis = barChart.getAxisLeft();
+                    yAxis.setTextColor(Color.WHITE);
+                    yAxis.setGranularity(1f);
+                    yAxis.setInverted(true);
+                    yAxis.setValueFormatter(new ValueFormatter() {
+                        @Override
+                        public String getFormattedValue(float value) {
+                            if (value < 0) {
+                                return "" + Math.abs((int) value); // Custom label for negative X values
+                            } else if (value > 0) {
+                                return "+" + (int) value; // Custom label for positive X values
+                            } else {
+                                return "0"; // Custom label for zero
+                            }
+                        }
+                    });
+                    yAxis.setAxisMinimum(chartData.getMinX() - (Math.abs(chartData.getMinX())*0.3f));
+                    yAxis.setAxisMaximum(chartData.getMaxX() + (Math.abs(chartData.getMaxX())*0.3f));
+
+                    barChart.getLegend().setEnabled(false);
+                    barChart.getAxisRight().setEnabled(false);
+                    barChart.setDrawValueAboveBar(false);
+                    barChart.setFitBars(true);
+                    barChart.getDescription().setText("0 values excluded");
+                    barChart.getDescription().setTextColor(Color.WHITE);
+                    barChart.invalidate();
+                }
+            }
+        });
 
         viewModel.getCategories().observe(getViewLifecycleOwner(), categoryDisplays -> {
             if (categoryDisplays != null){
-                if (adapter!= null) adapter.setCategoryDisplays(categoryDisplays);
+                if (adapter != null) adapter.setCategoryDisplays(categoryDisplays);
                 else {
                     adapter = new CategoriesAdapter(categoryDisplays, new CategoryMenuCallback() {
                         @Override

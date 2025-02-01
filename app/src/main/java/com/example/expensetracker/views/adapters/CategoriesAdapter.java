@@ -44,7 +44,8 @@ public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.My
             holder.binding.categoryName.setText(" - " + categoryDisplays.get(position).getCategory().getName());
         }
         else holder.binding.categoryName.setText(categoryDisplays.get(position).getCategory().getName());
-
+        
+        holder.binding.categoryAmount.setText(String.valueOf(categoryDisplays.get(position).getAmount()));
 
         holder.itemView.setPadding((categoryDisplays.get(position).getLevel()-1)*75,
                 holder.itemView.getPaddingTop(),

@@ -9,6 +9,9 @@ import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.util.Log;
@@ -33,6 +36,7 @@ import com.example.expensetracker.repository.database.Account;
 import com.example.expensetracker.repository.displayEntities.ChartData;
 import com.example.expensetracker.viewmodels.MainActivityViewModel;
 import com.example.expensetracker.views.adapters.AccountsAdapter;
+import com.example.expensetracker.views.customCallbacks.AccountMenuCallback;
 import com.github.mikephil.charting.charts.HorizontalBarChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
@@ -47,12 +51,14 @@ public class AccountsFragment extends Fragment {
     private static final String TAG = "AccountsFragment";
     FragmentAccountsBinding binding;
     MainActivityViewModel viewModel;
-    ListView listView;
+    RecyclerView recyclerView;
     AccountsAdapter adapter;
     SwipeRefreshLayout swipeRefreshLayout;
     FloatingActionButton fab;
     Dialog dialog;
     HorizontalBarChart barChart;
+
+    AccountMenuCallback menuCallback;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -60,16 +66,32 @@ public class AccountsFragment extends Fragment {
 
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_accounts, container, false);
         viewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
-        listView = binding.listview;
+        recyclerView = binding.recyclerView;
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        recyclerView.addItemDecoration(new DividerItemDecoration(getContext(), DividerItemDecoration.VERTICAL));
         TextView emptyView = binding.emptyTextView;
         barChart = binding.horizontalBarChart;
-        listView.setEmptyView(emptyView);
+
+        // TODO: empty recyclerview textview
+
+        menuCallback = new AccountMenuCallback() {
+            @Override
+            public void onDelete(Account account) {
+                viewModel.removeAccount(account.getAccount_id(), () -> {
+                    viewModel.getAllAccountsWithAmount(() -> getActivity().runOnUiThread(() -> Toast.makeText(getContext(), "Account deleted", Toast.LENGTH_SHORT).show()));
+                });
+            }
+        };
+
         viewModel.getAccounts().observe(getViewLifecycleOwner(), cursor -> {
             if (cursor != null){
+                if (cursor.getCount() == 0) emptyView.setVisibility(View.VISIBLE);
+                else emptyView.setVisibility(View.GONE);
+
                 if (adapter != null) adapter.swapCursor(cursor);
                 else {
-                    adapter = new AccountsAdapter(getContext(), cursor, 0);
-                    listView.setAdapter(adapter);
+                    adapter = new AccountsAdapter(cursor, menuCallback);
+                    recyclerView.setAdapter(adapter);
                 }
             }
         });
@@ -162,24 +184,6 @@ public class AccountsFragment extends Fragment {
                 }
             });
 
-        });
-
-        listView.setOnItemLongClickListener((parent, view, position, id) -> {
-            PopupMenu menu = new PopupMenu(getContext(), view);
-            menu.getMenuInflater().inflate(R.menu.menu_item_options2, menu.getMenu());
-
-            menu.setOnMenuItemClickListener(item -> {
-                if (item.getItemId() == R.id.menu_delete){
-                    Cursor selectedAccount = viewModel.getAccounts().getValue();
-                    selectedAccount.moveToPosition(position);
-                    viewModel.removeAccount(selectedAccount.getLong(0));
-                    return true;
-                }
-                else return false;
-            });
-
-            menu.show();
-            return true;
         });
 
         return binding.getRoot();
