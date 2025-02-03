@@ -119,8 +119,10 @@ public class CategoriesFragment extends Fragment {
 
                     barChart.getLegend().setEnabled(false);
                     barChart.getAxisRight().setEnabled(false);
-                    barChart.setDrawValueAboveBar(false);
+                    barChart.setDrawValueAboveBar(true);
                     barChart.setFitBars(true);
+                    barChart.setPinchZoom(false);
+                    barChart.setDoubleTapToZoomEnabled(false);
                     barChart.getDescription().setText("0 values excluded");
                     barChart.getDescription().setTextColor(Color.WHITE);
                     barChart.invalidate();
@@ -223,7 +225,7 @@ public class CategoriesFragment extends Fragment {
 
                         @Override
                         public void onDelete(CategoryDisplay categoryDisplay) {
-                            viewModel.removeCategory(categoryDisplay.getCategory().getId(), () -> viewModel.getAllCategoriesInDFS(() -> getActivity().runOnUiThread(() -> dialog.dismiss())));
+                            viewModel.removeCategory(categoryDisplay.getCategory().getId(), () -> viewModel.getAllCategoriesInDFS(() -> getActivity().runOnUiThread(() -> Toast.makeText(getContext(), "Category deleted", Toast.LENGTH_SHORT).show())));
                         }
                     });
                     recyclerView.setAdapter(adapter);

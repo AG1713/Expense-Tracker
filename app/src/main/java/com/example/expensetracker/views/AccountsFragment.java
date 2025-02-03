@@ -99,7 +99,8 @@ public class AccountsFragment extends Fragment {
         viewModel.getAccountsChartData().observe(getViewLifecycleOwner(), new Observer<ChartData>() {
             @Override
             public void onChanged(ChartData chartData) {
-                if (chartData.getEntries() != null){
+                barChart.clear();
+                if (chartData.getEntries() != null && !chartData.getEntries().isEmpty()){
                     BarDataSet barDataSet = new BarDataSet(chartData.getEntries(), "Label");
                     barDataSet.setColors(ColorTemplate.MATERIAL_COLORS);
                     barDataSet.setValueTextColor(Color.WHITE);
@@ -140,6 +141,8 @@ public class AccountsFragment extends Fragment {
                     barChart.getAxisRight().setEnabled(false);
                     barChart.setDrawValueAboveBar(true);
                     barChart.setFitBars(true);
+                    barChart.setPinchZoom(false);
+                    barChart.setDoubleTapToZoomEnabled(false);
                     barChart.getDescription().setText("0 values excluded");
                     barChart.getDescription().setTextColor(Color.WHITE);
                     barChart.invalidate();

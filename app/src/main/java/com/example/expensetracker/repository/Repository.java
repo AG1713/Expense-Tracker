@@ -18,8 +18,11 @@ import com.example.expensetracker.repository.database.Party;
 import com.example.expensetracker.repository.database.Record;
 import com.example.expensetracker.repository.displayEntities.CategoryEntries;
 import com.example.expensetracker.repository.displayEntities.ChartData;
+import com.example.expensetracker.repository.displayEntities.Filter;
+import com.example.expensetracker.repository.displayEntities.LineChartData;
 import com.github.mikephil.charting.data.BarEntry;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -114,8 +117,11 @@ public class Repository {
         });
     }
 
-    public void removeRecord(long id, Long category_id, double amount){
-        executor.execute(() -> db.deleteRecord(id, category_id, amount));
+    public void removeRecord(long id, Long category_id, double amount, Runnable callback){
+        executor.execute(() -> {
+            db.deleteRecord(id, category_id, amount);
+            callback.run();
+        });
     }
 
     public void removeGoal(long id){
@@ -191,36 +197,39 @@ public class Repository {
         executor.execute(() -> db.addTransaction(record, partyName, accountNo));
     }
 
-    public Cursor getAllRecords(){
-        return db.getAllRecords();
-    }
-    public void getAllRecords(Consumer<Cursor> callback){
-        executor.execute(() -> callback.accept(db.getAllRecords()));
+    public void getAllRecords(LineChartData lineChartData, Filter filter, Consumer<Cursor> callback){
+        executor.execute(() -> {
+            try {
+                callback.accept(db.getAllRecords(lineChartData, filter));
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     public void getAllMappings(Consumer<Cursor> callback){
         executor.execute(() -> callback.accept(db.getAllMappings()));
     }
 
-    public void getAllPartiesWithAmount(ChartData partiesData, Consumer<Cursor> callback){
-        executor.execute(() -> callback.accept(db.getAllPartiesWithAmounts(partiesData)));
+    public void getAllPartiesWithAmount(Filter filter, ChartData partiesData, Consumer<Cursor> callback){
+        executor.execute(() -> callback.accept(db.getAllPartiesWithAmounts(filter, partiesData)));
     }
 
 //    public Cursor getAllPartiesWithAmount(){
 //        return db.getAllPartiesWithAmounts();
 //    }
 
-    public void getAllCategoriesInDFS(ChartData categoriesData, Consumer<ArrayList<CategoryDisplay>> callback){
+    public void getAllCategoriesInDFS(Filter filter, ChartData categoriesData, Consumer<ArrayList<CategoryDisplay>> callback){
         executor.execute(new Runnable() {
             @Override
             public void run() {
-                callback.accept(db.getCategoriesInDFS(categoriesData));
+                callback.accept(db.getCategoriesInDFS(filter, categoriesData));
             }
         });
     }
 
-    public void getAllAccountsWithAmounts(ChartData chartData, Consumer<Cursor> callback){
-        executor.execute(() -> callback.accept(db.getAllAccountsWithAmounts(chartData)));
+    public void getAllAccountsWithAmounts(Filter filter, ChartData chartData, Consumer<Cursor> callback){
+        executor.execute(() -> callback.accept(db.getAllAccountsWithAmounts(filter, chartData)));
     }
 
     public void getAllCategories(Consumer<Cursor> callback){

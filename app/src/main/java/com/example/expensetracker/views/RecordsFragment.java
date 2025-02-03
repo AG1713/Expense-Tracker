@@ -7,12 +7,15 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.MergeCursor;
+import android.graphics.Color;
 import android.os.Bundle;
 
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.text.Editable;
@@ -41,9 +44,19 @@ import com.example.expensetracker.databinding.FragmentRecordsBinding;
 import com.example.expensetracker.repository.Repository;
 import com.example.expensetracker.repository.database.BudgetDB;
 import com.example.expensetracker.repository.database.Record;
+import com.example.expensetracker.repository.displayEntities.Filter;
+import com.example.expensetracker.repository.displayEntities.LineChartData;
 import com.example.expensetracker.viewmodels.MainActivityViewModel;
 import com.example.expensetracker.views.adapters.PartiesAdapter;
 import com.example.expensetracker.views.adapters.RecordsAdapter;
+import com.example.expensetracker.views.customCallbacks.RecordMenuCallback;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.github.mikephil.charting.utils.ColorTemplate;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.Objects;
@@ -55,25 +68,90 @@ public class RecordsFragment extends Fragment {
     FragmentRecordsBinding binding;
     MainActivityViewModel viewModel;
     RecordsAdapter adapter;
-    ListView listView;
+    RecyclerView recyclerView;
     SwipeRefreshLayout swipeRefreshLayout;
     FloatingActionButton fab;
     Dialog dialog;
+    LineChart lineChart;
+    RecordMenuCallback callback;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_records, container, false);
-        viewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
-        listView = binding.listView;
+        viewModel = new ViewModelProvider(requireActivity()).get(MainActivityViewModel.class);
+        recyclerView = binding.recyclerView;
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        lineChart = binding.lineChart;
+
+        callback = new RecordMenuCallback() {
+            @Override
+            public void onUpdate(Record record) {
+                showUpdateDialog(record);
+            }
+
+            @Override
+            public void onDelete(Record record) {
+                deleteRecord(record);
+            }
+        };
+
+        viewModel.getFilterMutableLiveData().observe(getViewLifecycleOwner(), filter -> viewModel.getAllRecords(() -> {
+            // Do nothing
+        }));
 
         viewModel.getRecords().observe(getViewLifecycleOwner(), cursor -> {
             if (cursor != null){
                 if (adapter != null) adapter.swapCursor(cursor);
                 else {
-                    adapter = new RecordsAdapter(getContext(), cursor, 0);
-                    Log.d(TAG, "Cursor is closed: " + adapter.getCursor().isClosed());
-                    listView.setAdapter(adapter);
+                    adapter = new RecordsAdapter(cursor, callback);
+                    recyclerView.setAdapter(adapter);
+                }
+            }
+        });
+
+        viewModel.getRecordsChartData().observe(getViewLifecycleOwner(), new Observer<LineChartData>() {
+            @Override
+            public void onChanged(LineChartData lineChartData) {
+                Log.d(TAG, "onChanged: " + (lineChartData.getEntries() == null));
+                lineChart.clear();
+                if (lineChartData.getEntries() != null && !lineChartData.getEntries().isEmpty()){
+                    Log.d(TAG, "onChanged: " + lineChartData.getEntries().isEmpty());
+                    LineDataSet dataSet = new LineDataSet(lineChartData.getEntries(), "Records");
+                    dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
+                    dataSet.setValueTextColor(Color.WHITE);
+                    dataSet.setValueTextSize(12f);
+                    LineData lineData = new LineData(dataSet);
+                    lineChart.setData(lineData);
+
+                    XAxis xAxis = lineChart.getXAxis();
+                    xAxis.setValueFormatter(new IndexAxisValueFormatter(lineChartData.getLabels()));
+                    xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+                    xAxis.setTextColor(Color.WHITE);
+                    xAxis.setAxisMinimum(-1);
+                    xAxis.setAxisMaximum(lineChartData.getLabels().size());
+                    xAxis.setAvoidFirstLastClipping(true);
+                    xAxis.setGranularity(1f);
+
+                    YAxis yAxis = lineChart.getAxisLeft();
+                    yAxis.setTextColor(Color.WHITE);
+                    yAxis.setGranularity(1f);
+                    yAxis.setInverted(true);
+
+                    yAxis.setAxisMinimum(lineChartData.getMinY() - (Math.abs(lineChartData.getMinY())*0.3f));
+                    yAxis.setAxisMaximum(lineChartData.getMaxY() + (Math.abs(lineChartData.getMaxY())*0.3f));
+
+                    lineChart.getLegend().setEnabled(false);
+                    lineChart.getAxisRight().setEnabled(false);
+                    lineChart.getDescription().setEnabled(false);
+                    lineChart.setPinchZoom(false);
+                    lineChart.setDoubleTapToZoomEnabled(false);
+
+                    lineChart.setVisibleXRangeMaximum(5);
+                    lineChart.setDragEnabled(true);
+                    lineChart.setNestedScrollingEnabled(true);
+                    lineChart.moveViewToX(lineChartData.getEntries().size()-1);
+                    lineChart.invalidate();
                 }
             }
         });
@@ -262,44 +340,11 @@ public class RecordsFragment extends Fragment {
 
         });
 
-        listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-            @Override
-            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
-                PopupMenu popupMenu = new PopupMenu(getContext(), view);
-                popupMenu.getMenuInflater().inflate(R.menu.menu_item_options1, popupMenu.getMenu());
-
-                popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                    @Override
-                    public boolean onMenuItemClick(MenuItem menuItem) {
-
-                        if (menuItem.getItemId() == R.id.menu_update){
-                            showUpdateDialog(i);
-                            return true;
-                        } else if (menuItem.getItemId() == R.id.menu_delete) {
-                            deleteRecord(i);
-                            return true;
-                        }
-
-                        return false;
-                    }
-                });
-
-                popupMenu.show();
-                return true;
-            }
-        });
-
         return binding.getRoot();
     }
 
 
-    void showUpdateDialog(int i){
-        Cursor cursor = viewModel.getRecords().getValue();
-        Log.d(TAG, "showUpdateDialog: ");
-        cursor.moveToPosition(i);
-
-        Log.d(TAG, "showUpdateDialog: " + cursor.getString(2));
-
+    void showUpdateDialog(Record record){;
         Dialog dialog1 = new Dialog(getContext());
         dialog1.setContentView(R.layout.add_record_dialog);
         dialog1.show();
@@ -343,7 +388,7 @@ public class RecordsFragment extends Fragment {
 
                 mergedCursor.moveToFirst();
                 do {
-                    if (Objects.equals(mergedCursor.getString(1), cursor.getString(1))) {
+                    if (Objects.equals(mergedCursor.getLong(0), record.getAccount_id())) {
                         account.setSelection(mergedCursor.getPosition());
                     }
                 } while(mergedCursor.moveToNext());
@@ -369,7 +414,7 @@ public class RecordsFragment extends Fragment {
 
                 mergedCursor.moveToFirst();
                 do {
-                    if (Objects.equals(mergedCursor.getString(1), cursor.getString(5))) {
+                    if (Objects.equals(mergedCursor.getLong(0), record.getParty())) {
                         party.setSelection(mergedCursor.getPosition());
                     }
                 } while(mergedCursor.moveToNext());
@@ -395,7 +440,7 @@ public class RecordsFragment extends Fragment {
 
                 mergedCursor.moveToFirst();
                 do {
-                    if (Objects.equals(mergedCursor.getString(1), cursor.getString(8))) {
+                    if (Objects.equals(mergedCursor.getLong(0), record.getCategory_id())) {
                         category.setSelection(mergedCursor.getPosition());
                     }
                 } while(mergedCursor.moveToNext());
@@ -403,8 +448,8 @@ public class RecordsFragment extends Fragment {
         });
 
         // Date and time
-        date.setText(cursor.getString(2));
-        selectedDate.set(cursor.getString(2));
+        date.setText(record.getDate());
+        selectedDate.set(record.getDate());
         date.setOnClickListener(v12 -> {
             DatePickerDialog datePickerDialog = new DatePickerDialog(getContext());
             datePickerDialog.show();
@@ -417,8 +462,8 @@ public class RecordsFragment extends Fragment {
             });
         });
 
-        time.setText(cursor.getString(3));
-        selectedTime.set(cursor.getString(3));
+        time.setText(record.getTime());
+        selectedTime.set(record.getTime());
         time.setOnClickListener(v13 -> {
             TimePickerDialog timePickerDialog = new TimePickerDialog(getContext(), (view, hourOfDay, minute) -> {
                 time.setText(hourOfDay % 12 + ":" + ((minute < 10) ? "0" + minute : minute) + ((hourOfDay < 12) ? " AM" : " PM"));
@@ -428,12 +473,12 @@ public class RecordsFragment extends Fragment {
         });
 
         // Radio group
-        if (cursor.getString(4).equals("credited")) ((RadioButton) operation.findViewById(R.id.credited)).setChecked(true);
+        if (record.getOperation().equals("credited")) ((RadioButton) operation.findViewById(R.id.credited)).setChecked(true);
         else ((RadioButton) operation.findViewById(R.id.debited)).setChecked(true);
 
 
         // Rest of the widgets
-        amount.setText(String.valueOf(cursor.getDouble(6)));
+        amount.setText(String.valueOf(record.getAmount()));
         amount.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -453,7 +498,7 @@ public class RecordsFragment extends Fragment {
             }
         });
 
-        description.setText(cursor.getString(7));
+        description.setText(record.getDescription());
 
         addRecordBtn.setOnClickListener(v -> {
             Cursor selectedAccount = (Cursor) account.getSelectedItem();
@@ -469,7 +514,7 @@ public class RecordsFragment extends Fragment {
             else if (operation.getCheckedRadioButtonId() == -1)
                 Toast.makeText(getContext(), "Please check credited/debited", Toast.LENGTH_SHORT).show();
             else {
-                Record record = new Record(
+                Record newRecord = new Record(
                         (selectedAccount.getLong(0) == -1) ? null : selectedAccount.getLong(0),
                         selectedDate.get(),
                         selectedTime.get(),
@@ -478,10 +523,10 @@ public class RecordsFragment extends Fragment {
                         (selectedParty.getLong(0) == -1) ? null : selectedParty.getLong(0),
                         (selectedCategory.getLong(0) == -1) ? null : selectedCategory.getLong(0)
                 );
-                record.setDescription(description.getText().toString());
-                Log.d(TAG, "edited record id: " + cursor.getLong(0));
-                record.setId(cursor.getLong(0));
-                viewModel.updateRecord(record, cursor.getLong(9), cursor.getDouble(6));
+                newRecord.setDescription(description.getText().toString());
+                Log.d(TAG, "edited record id: " + record.getId());
+                newRecord.setId(record.getId());
+                viewModel.updateRecord(newRecord, record.getCategory_id(), record.getAmount());
                 viewModel.getAllRecords(() -> getActivity().runOnUiThread(dialog1::dismiss));
             }
 
@@ -493,17 +538,19 @@ public class RecordsFragment extends Fragment {
 
     }
 
-    void deleteRecord(int i){
-        Cursor cursor = viewModel.getRecords().getValue();
-        Log.d(TAG, "deleteRecord: ");
-        cursor.moveToPosition(i);
-        viewModel.removeRecord(cursor.getLong(0), cursor.getLong(9), cursor.getDouble(6));
-        viewModel.getAllRecords(new Runnable() {
+    void deleteRecord(Record record){
+        viewModel.removeRecord(record.getId(), record.getCategory_id(), record.getAmount(), new Runnable() {
             @Override
             public void run() {
-                getActivity().runOnUiThread(() -> Toast.makeText(getContext(), "Record deleted", Toast.LENGTH_SHORT).show());
+                viewModel.getAllRecords(new Runnable() {
+                    @Override
+                    public void run() {
+                        getActivity().runOnUiThread(() -> Toast.makeText(getContext(), "Record deleted", Toast.LENGTH_SHORT).show());
+                    }
+                });
             }
         });
+
     }
 
 

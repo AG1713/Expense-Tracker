@@ -11,15 +11,20 @@ import android.util.Log;
 import com.example.expensetracker.repository.displayEntities.CategoryDisplay;
 import com.example.expensetracker.repository.displayEntities.CategoryEntries;
 import com.example.expensetracker.repository.displayEntities.ChartData;
+import com.example.expensetracker.repository.displayEntities.Filter;
+import com.example.expensetracker.repository.displayEntities.LineChartData;
 import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.data.Entry;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 public class BudgetDB extends SQLiteOpenHelper {
     public static final String DATABASE_NAME = "BudgetDB";
@@ -586,29 +591,281 @@ public class BudgetDB extends SQLiteOpenHelper {
         Log.d(TAG, "updateMapping: Mappings updated");
     }
 
-    public Cursor getAllRecords(){
+    private String addDateTimeFilterStatement(Filter filter){
+        String filterStatement = "";
+        boolean whereFlag = true;
+
+        if (filter.getStart_date() != null || filter.getEnd_date() != null){
+            if (whereFlag){
+                filterStatement += "WHERE ";
+                whereFlag = false;
+            }
+            else {
+                filterStatement += " AND ";
+            }
+            if (filter.getStart_date() != null && filter.getEnd_date() == null){
+                filterStatement += RECORDS_DATE + " >= DATE('" + filter.getStart_date() + "') ";
+            }
+            else if (filter.getStart_date() == null && filter.getEnd_date() != null){
+                filterStatement += RECORDS_DATE + " <= DATE('" + filter.getEnd_date() + "') ";
+            }
+            else {
+                filterStatement += RECORDS_DATE + " >= DATE('" + filter.getStart_date() + "') AND " +
+                        RECORDS_DATE + " <= DATE('" + filter.getEnd_date() + "') ";
+            }
+        }
+        if (filter.getStart_time() != null || filter.getEnd_time() != null){
+            if (whereFlag){
+                filterStatement += "WHERE ";
+                whereFlag = false;
+            }
+            else {
+                filterStatement += " AND ";
+            }
+            if (filter.getStart_time() != null && filter.getEnd_time() == null){
+                filterStatement += RECORDS_TIME + " >= '" + filter.getStart_time() + "' ";
+            }
+            else if (filter.getStart_time() == null && filter.getEnd_time() != null){
+                filterStatement += RECORDS_TIME + " <= '" + filter.getEnd_time() + "' ";
+            }
+            else {
+                filterStatement += RECORDS_TIME + " >= '" + filter.getStart_time() + "' AND " +
+                        RECORDS_TIME + " <= '" + filter.getEnd_time() + "' ";
+            }
+        }
+
+        return filterStatement;
+    }
+
+    private String addIdFilterStatement(Filter filter){
+        String filterStatement = "";
+
+        boolean whereFlag = true;
+        if (filter.getParty_id() != null){
+            if (whereFlag){
+                filterStatement += "WHERE ";
+                whereFlag = false;
+            }
+            else {
+                filterStatement += " AND ";
+            }
+            filterStatement += RECORDS_PARTY_ID + " = " + filter.getParty_id() + " ";
+        }
+        if (filter.getAccount_id() != null){
+            if (whereFlag){
+                filterStatement += "WHERE ";
+                whereFlag = false;
+            }
+            else {
+                filterStatement += " AND ";
+            }
+            filterStatement += RECORDS_ACCOUNT_ID + " = " + filter.getAccount_id() + " ";
+        }
+        if (filter.getCategory_id() != null){
+            if (whereFlag){
+                filterStatement += "WHERE ";
+                whereFlag = false;
+            }
+            else {
+                filterStatement += " AND ";
+            }
+            filterStatement += TABLE_CATEGORIES + "." + CATEGORIES_ID + " IN (SELECT " + CATEGORIES_ID + " FROM category_hierarchy) ";
+        }
+
+        return filterStatement;
+    }
+
+    private String addFilterStatement(Filter filter){
+        boolean whereFlag = true;
+        String filterStatement = "";
+
+        if (filter.getParty_id() != null){
+            if (whereFlag){
+                filterStatement += "WHERE ";
+                whereFlag = false;
+            }
+            else {
+                filterStatement += " AND ";
+            }
+            filterStatement += RECORDS_PARTY_ID + " = " + filter.getParty_id() + " ";
+        }
+        if (filter.getAccount_id() != null){
+            if (whereFlag){
+                filterStatement += "WHERE ";
+                whereFlag = false;
+            }
+            else {
+                filterStatement += " AND ";
+            }
+            filterStatement += RECORDS_ACCOUNT_ID + " = " + filter.getAccount_id() + " ";
+        }
+        if (filter.getCategory_id() != null){
+            if (whereFlag){
+                filterStatement += "WHERE ";
+                whereFlag = false;
+            }
+            else {
+                filterStatement += " AND ";
+            }
+            filterStatement += RECORDS_CATEGORY_ID + " IN (SELECT " + CATEGORIES_ID + " FROM category_hierarchy) ";
+        }
+        if (filter.getStart_date() != null || filter.getEnd_date() != null){
+            if (whereFlag){
+                filterStatement += "WHERE ";
+                whereFlag = false;
+            }
+            else {
+                filterStatement += " AND ";
+            }
+            if (filter.getStart_date() != null && filter.getEnd_date() == null){
+                filterStatement += RECORDS_DATE + " >= DATE('" + filter.getStart_date() + "') ";
+            }
+            else if (filter.getStart_date() == null && filter.getEnd_date() != null){
+                filterStatement += RECORDS_DATE + " <= DATE('" + filter.getEnd_date() + "') ";
+            }
+            else {
+                filterStatement += RECORDS_DATE + " >= DATE('" + filter.getStart_date() + "') AND " +
+                        RECORDS_DATE + " <= DATE('" + filter.getEnd_date() + "') ";
+            }
+        }
+        if (filter.getStart_time() != null || filter.getEnd_time() != null){
+            if (whereFlag){
+                filterStatement += "WHERE ";
+                whereFlag = false;
+            }
+            else {
+                filterStatement += " AND ";
+            }
+            if (filter.getStart_time() != null && filter.getEnd_time() == null){
+                filterStatement += RECORDS_TIME + " >= '" + filter.getStart_time() + "' ";
+            }
+            else if (filter.getStart_time() == null && filter.getEnd_time() != null){
+                filterStatement += RECORDS_TIME + " <= '" + filter.getEnd_time() + "' ";
+            }
+            else {
+                filterStatement += RECORDS_TIME + " >= '" + filter.getStart_time() + "' AND " +
+                        RECORDS_TIME + " <= '" + filter.getEnd_time() + "' ";
+            }
+        }
+
+        return filterStatement;
+    }
+
+    public Cursor getAllRecords(LineChartData lineChartData, Filter filter) throws ParseException {
+        String recursive_query = "WITH RECURSIVE category_hierarchy AS (" +
+                "SELECT " + CATEGORIES_ID + " " +
+                "FROM " + TABLE_CATEGORIES + " " +
+                "WHERE " + CATEGORIES_ID +  ((filter.getCategory_id() == null) ? " IS NULL" : " = " + filter.getCategory_id()) + " " +
+                "UNION ALL " +
+                "SELECT c." + CATEGORIES_ID + " " +
+                "FROM " + TABLE_CATEGORIES + " c " +
+                "INNER JOIN category_hierarchy ch ON c." + CATEGORIES_PARENT_ID + " = ch." + CATEGORIES_ID + ") ";
+
         Cursor cursor = null;
         try{
             SQLiteDatabase db = this.getReadableDatabase();
             Log.d(TAG, "getAllRecords is open: " + db.isOpen());
-            cursor = db.rawQuery("SELECT " +
-                            TABLE_RECORDS + ".id AS _id, " + ACCOUNTS_ACCOUNT_NO + ", date, time, operation, " + TABLE_PARTY + "." + PARTIES_NICKNAME + ", amount, description, " + TABLE_CATEGORIES + "." + CATEGORIES_NAME + ", " + RECORDS_CATEGORY_ID + " " +
-                            "FROM " + TABLE_RECORDS + " " +
-                            "LEFT JOIN " + TABLE_CATEGORIES + " " +
-                            "ON " + TABLE_RECORDS + "." + RECORDS_CATEGORY_ID + " = " + TABLE_CATEGORIES + "." + CATEGORIES_ID + " " +
-                            "LEFT JOIN " + TABLE_PARTY + " " +
-                            "ON " + TABLE_RECORDS + "." + RECORDS_PARTY_ID + " = " + TABLE_PARTY + "." + PARTIES_ID + " " +
-                            "LEFT JOIN " + TABLE_ACCOUNTS + " " +
-                            "ON " + TABLE_RECORDS + "." + RECORDS_ACCOUNT_ID + " = " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID + " " +
-                            " ORDER BY date DESC, time DESC",
-                    null);
+
+            String query = "SELECT " +
+                    TABLE_RECORDS + ".id AS _id, " +
+                    RECORDS_DATE + ", " + RECORDS_TIME + ", " + RECORDS_OPERATION + ", " + RECORDS_AMOUNT + ", " + RECORDS_DESCRIPTION + ", " +
+                    TABLE_ACCOUNTS + "." + ACCOUNTS_ID + "," + ACCOUNTS_ACCOUNT_NO + ", " +
+                    TABLE_PARTY + "." + PARTIES_ID + ", " + TABLE_PARTY + "." + PARTIES_NICKNAME + ", " +
+                    TABLE_CATEGORIES + "." + CATEGORIES_NAME + ", " + RECORDS_CATEGORY_ID + " " +
+                    "FROM " + TABLE_RECORDS + " " +
+                    "LEFT JOIN " + TABLE_CATEGORIES + " " +
+                    "ON " + TABLE_RECORDS + "." + RECORDS_CATEGORY_ID + " = " + TABLE_CATEGORIES + "." + CATEGORIES_ID + " " +
+                    "LEFT JOIN " + TABLE_PARTY + " " +
+                    "ON " + TABLE_RECORDS + "." + RECORDS_PARTY_ID + " = " + TABLE_PARTY + "." + PARTIES_ID + " " +
+                    "LEFT JOIN " + TABLE_ACCOUNTS + " " +
+                    "ON " + TABLE_RECORDS + "." + RECORDS_ACCOUNT_ID + " = " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID + " ";
+            query += addFilterStatement(filter);
+            query += "ORDER BY date DESC, time DESC";
+
+            cursor = db.rawQuery(recursive_query + " " + query, null);
+            Log.d(TAG, "getAllRecords: " + recursive_query + " " + query);
         }
         catch (SQLiteException e){
             Log.d(TAG, "getAllRecords: " + e.getMessage());
         }
+
+        getRecordsLineChartData(lineChartData, filter);
+
         return cursor;
     }
 
+    public void getRecordsLineChartData(LineChartData lineChartData, Filter filter) throws ParseException {
+        // Assuming each day transactions for now
+        Cursor cursor;
+
+        SQLiteDatabase db = getReadableDatabase();
+
+        String recursive_query = "WITH RECURSIVE category_hierarchy AS (" +
+                "SELECT " + CATEGORIES_ID + " " +
+                "FROM " + TABLE_CATEGORIES + " " +
+                "WHERE " + CATEGORIES_ID +  ((filter.getCategory_id() == null) ? " IS NULL" : " = " + filter.getCategory_id()) + " " +
+                "UNION ALL " +
+                "SELECT c." + CATEGORIES_ID + " " +
+                "FROM " + TABLE_CATEGORIES + " c " +
+                "INNER JOIN category_hierarchy ch ON c." + CATEGORIES_PARENT_ID + " = ch." + CATEGORIES_ID + ") ";
+
+        String query = "SELECT " + RECORDS_ID + ", " + RECORDS_DATE + ", " +
+                "SUM(CASE " +
+                "WHEN " + RECORDS_OPERATION + " = 'credited' THEN " + RECORDS_AMOUNT + " " +
+                "WHEN " + RECORDS_OPERATION + " = 'debited' THEN -" + RECORDS_AMOUNT + " " +
+                "ELSE 0 " +
+                "END) AS Total " +
+                "FROM " + TABLE_RECORDS + " ";
+        query += addFilterStatement(filter);
+        query += "GROUP BY " + RECORDS_DATE + " " +
+                "ORDER BY " + RECORDS_DATE + " ASC";
+
+        cursor = db.rawQuery(recursive_query + " " + query, null);
+
+
+        if (!cursor.moveToFirst()) return;
+
+        int i=0;
+        int amountIndex = cursor.getColumnIndex("Total");
+        int dateIndex = cursor.getColumnIndex(RECORDS_DATE);
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        SimpleDateFormat outputFormat = new SimpleDateFormat("dd-MM", Locale.getDefault());
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(Objects.requireNonNull(dateFormat.parse(cursor.getString(dateIndex))));
+
+        do {
+            Date cur = dateFormat.parse(cursor.getString(dateIndex));
+
+            if (!calendar.getTime().equals(cur) && calendar.getTime().before(cur)){
+                calendar.add(Calendar.DATE, 1);
+                while (!calendar.getTime().equals(cur) && calendar.getTime().before(cur)) {
+                    lineChartData.addEntry(new Entry(i, 0));
+                    lineChartData.addLabel(outputFormat.format(calendar.getTime()));
+                    lineChartData.setMinY(Math.min(lineChartData.getMinY(), 0));
+                    lineChartData.setMaxY(Math.max(lineChartData.getMaxY(), 0));
+                    calendar.add(Calendar.DATE, 1);
+                    i++;
+                }
+            }
+
+            lineChartData.addEntry(new Entry(i, (float) cursor.getDouble(amountIndex)));
+            lineChartData.addLabel(outputFormat.format(dateFormat.parse(cursor.getString(dateIndex))));
+            lineChartData.setMinY(Math.min(lineChartData.getMinY(), (float) cursor.getDouble(amountIndex)));
+            lineChartData.setMaxY(Math.max(lineChartData.getMaxY(), (float) cursor.getDouble(amountIndex)));
+            i++;
+
+        } while (cursor.moveToNext());
+
+        ArrayList<String> labels = lineChartData.getLabels();
+        ArrayList<Entry> entries = lineChartData.getEntries();
+        Log.d(TAG, "getRecordsLineChartData: Check");
+
+        for (int j=0 ; j<entries.size() ; j++){
+            Log.d(TAG, "getRecordsLineChartData: " + labels.get(j) + " " + entries.get(j));
+        }
+
+    }
 
     public Cursor getAllMappings(){
         Cursor cursor = null;
@@ -657,30 +914,38 @@ public class BudgetDB extends SQLiteOpenHelper {
         return null;
     }
 
-    public Cursor getAllPartiesWithAmounts(ChartData partiesData){
+    public Cursor getAllPartiesWithAmounts(Filter filter, ChartData partiesData){
         Cursor cursor = null;
+        SQLiteDatabase db = getReadableDatabase();
 
-        try {
-            SQLiteDatabase db = getReadableDatabase();
+        String recursive_query = "WITH RECURSIVE category_hierarchy AS (" +
+                "SELECT " + CATEGORIES_ID + " " +
+                "FROM " + TABLE_CATEGORIES + " " +
+                "WHERE " + CATEGORIES_ID +  ((filter.getCategory_id() == null) ? " IS NULL" : " = " + filter.getCategory_id()) + " " +
+                "UNION ALL " +
+                "SELECT c." + CATEGORIES_ID + " " +
+                "FROM " + TABLE_CATEGORIES + " c " +
+                "INNER JOIN category_hierarchy ch ON c." + CATEGORIES_PARENT_ID + " = ch." + CATEGORIES_ID + ") ";
 
-            cursor = db.rawQuery(
-                    "SELECT " + TABLE_PARTY + "." + PARTIES_ID + " AS _id," + PARTIES_NAME + "," + PARTIES_NICKNAME + "," +
-                            "SUM(CASE " +
-                            "WHEN " + RECORDS_OPERATION + " = 'credited' THEN " + RECORDS_AMOUNT + " " +
-                            "WHEN " + RECORDS_OPERATION + " = 'debited' THEN -" + RECORDS_AMOUNT + " " +
-                            "ELSE 0 " +
-                            "END) AS Total " +
-                            "FROM " + TABLE_PARTY + " " +
-                            "LEFT JOIN " + TABLE_RECORDS + " " +
-                            "ON " + TABLE_PARTY + "." + PARTIES_ID + " = " + TABLE_RECORDS + "." + RECORDS_PARTY_ID + " " +
-                            "GROUP BY " + TABLE_PARTY + "." + PARTIES_ID,
-                    null
-            );
-            Log.d(TAG, "getAllPartiesWithAmounts: " + cursor.getCount());
+        String query = "SELECT " + TABLE_PARTY + "." + PARTIES_ID + " AS _id," + PARTIES_NAME + "," + PARTIES_NICKNAME + "," +
+                "SUM(CASE " +
+                "WHEN " + RECORDS_OPERATION + " = 'credited' THEN " + RECORDS_AMOUNT + " " +
+                "WHEN " + RECORDS_OPERATION + " = 'debited' THEN -" + RECORDS_AMOUNT + " " +
+                "ELSE 0 " +
+                "END) AS Total " +
+                "FROM " + TABLE_PARTY + " " +
+                "LEFT JOIN (SELECT * FROM " + TABLE_RECORDS + " ";
+        query += addFilterStatement(filter);
+        query += ") AS rec ON " + TABLE_PARTY + "." + PARTIES_ID + " = rec." + RECORDS_PARTY_ID + " ";
+        if (filter.getParty_id() != null){
+            query += " WHERE " + TABLE_PARTY + "." + PARTIES_ID + " = " + filter.getParty_id() + " ";
         }
-        catch (SQLiteException e){
-            Log.d(TAG, "getAllPartiesWithAmounts: " + e.getMessage());
-        }
+        query += "GROUP BY " + TABLE_PARTY + "." + PARTIES_ID;
+
+
+        cursor = db.rawQuery(recursive_query + " " + query, null);
+        Log.d(TAG, "getAllPartiesWithAmounts: " + recursive_query + " " + query);
+        Log.d(TAG, "getAllPartiesWithAmounts: " + cursor.getCount());
 
         if (!cursor.moveToFirst()) return cursor;
         int i=0;
@@ -705,26 +970,38 @@ public class BudgetDB extends SQLiteOpenHelper {
         return cursor;
     }
 
-    public Cursor getAllAccountsWithAmounts(ChartData accountsData){
+    public Cursor getAllAccountsWithAmounts(Filter filter, ChartData accountsData){
         Cursor cursor = null;
 
         try {
             SQLiteDatabase db = getReadableDatabase();
 
-            cursor = db.rawQuery(
-                    "SELECT " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID + " AS _id, " + ACCOUNTS_ACCOUNT_NO + "," +
-                            "SUM(CASE " +
-                            "WHEN " + RECORDS_OPERATION + " = 'credited' THEN " + RECORDS_AMOUNT + " " +
-                            "WHEN " + RECORDS_OPERATION + " = 'debited' THEN -" + RECORDS_AMOUNT + " " +
-                            "ELSE 0 " +
-                            "END) AS Total " +
-                            "FROM " + TABLE_ACCOUNTS + " " +
-                            "LEFT JOIN " + TABLE_RECORDS + " " +
-                            "ON " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID + " = " +
-                            TABLE_RECORDS + "." + RECORDS_ACCOUNT_ID + " " +
-                            "GROUP BY " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID,
-                    null
-            );
+            String recursive_query = "WITH RECURSIVE category_hierarchy AS (" +
+                    "SELECT " + CATEGORIES_ID + " " +
+                    "FROM " + TABLE_CATEGORIES + " " +
+                    "WHERE " + CATEGORIES_ID +  ((filter.getCategory_id() == null) ? " IS NULL" : " = " + filter.getCategory_id()) + " " +
+                    "UNION ALL " +
+                    "SELECT c." + CATEGORIES_ID + " " +
+                    "FROM " + TABLE_CATEGORIES + " c " +
+                    "INNER JOIN category_hierarchy ch ON c." + CATEGORIES_PARENT_ID + " = ch." + CATEGORIES_ID + ") ";
+
+            String query = "SELECT " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID + " AS _id, " + ACCOUNTS_ACCOUNT_NO + "," +
+                    "SUM(CASE " +
+                    "WHEN " + RECORDS_OPERATION + " = 'credited' THEN " + RECORDS_AMOUNT + " " +
+                    "WHEN " + RECORDS_OPERATION + " = 'debited' THEN -" + RECORDS_AMOUNT + " " +
+                    "ELSE 0 " +
+                    "END) AS Total " +
+                    "FROM " + TABLE_ACCOUNTS + " " +
+                    "LEFT JOIN (SELECT * FROM " + TABLE_RECORDS + " ";
+            query += addFilterStatement(filter);
+            query += ") as rec ON " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID + " = rec." + RECORDS_ACCOUNT_ID + " ";
+            if (filter.getAccount_id() != null){
+                query += " WHERE " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID + " = " + filter.getAccount_id() + " ";
+            }
+            query += "GROUP BY " + TABLE_ACCOUNTS + "." + ACCOUNTS_ID;
+
+            cursor = db.rawQuery(recursive_query + " " + query, null);
+            Log.d(TAG, "getAllAccountsWithAmounts: " + recursive_query + " " + query);
             Log.d(TAG, "getAllAccountsWithAmounts: " + cursor.getCount());
         }
         catch (SQLiteException e){
@@ -754,27 +1031,43 @@ public class BudgetDB extends SQLiteOpenHelper {
         return cursor;
     }
 
-    public ArrayList<CategoryDisplay> getCategoriesInDFS(ChartData categoriesData){
+    public ArrayList<CategoryDisplay> getCategoriesInDFS(Filter filter, ChartData categoriesData){
         Cursor cursor = null;
         Map<Long, ArrayList<CategoryDisplay>> categoryMap = new HashMap<>(); // CategoryDisplay because we need amount too
         ArrayList<CategoryDisplay> categoryDisplays = new ArrayList<>();
+        CategoryDisplay startCategory = null;
 
         try {
             SQLiteDatabase db = getReadableDatabase();
-            cursor = db.rawQuery(
-                    "SELECT " + TABLE_CATEGORIES + "." + CATEGORIES_ID + ", " + CATEGORIES_NAME + "," + CATEGORIES_PARENT_ID + "," +
-                            "SUM(CASE " +
-                            "WHEN " + RECORDS_OPERATION + " = 'credited' THEN " + RECORDS_AMOUNT + " " +
-                            "WHEN " + RECORDS_OPERATION + " = 'debited' THEN -" + RECORDS_AMOUNT + " " +
-                            "ELSE 0 " +
-                            "END) AS Total " +
-                            " FROM " + TABLE_CATEGORIES + " " +
-                            "LEFT JOIN " + TABLE_RECORDS + " " +
-                            "ON " + TABLE_RECORDS + "." + RECORDS_CATEGORY_ID + " = " + TABLE_CATEGORIES + "." + CATEGORIES_ID + " " +
-                            "GROUP BY " + TABLE_CATEGORIES + "." + CATEGORIES_ID + " " +
-                            "ORDER BY " + CATEGORIES_PARENT_ID + " ASC",
-                    null
-            );
+
+            String recursive_query = "WITH RECURSIVE category_hierarchy AS (" +
+                    "SELECT " + CATEGORIES_ID + " " +
+                    "FROM " + TABLE_CATEGORIES + " " +
+                    "WHERE " + CATEGORIES_ID +  ((filter.getCategory_id() == null) ? " IS NULL" : " = " + filter.getCategory_id()) + " " +
+                    "UNION ALL " +
+                    "SELECT c." + CATEGORIES_ID + " " +
+                    "FROM " + TABLE_CATEGORIES + " c " +
+                    "INNER JOIN category_hierarchy ch ON c." + CATEGORIES_PARENT_ID + " = ch." + CATEGORIES_ID + ") ";
+
+            String query = "SELECT " + TABLE_CATEGORIES + "." + CATEGORIES_ID + ", " + CATEGORIES_NAME + "," + CATEGORIES_PARENT_ID + "," +
+                    "SUM(CASE " +
+                    "WHEN " + RECORDS_OPERATION + " = 'credited' THEN " + RECORDS_AMOUNT + " " +
+                    "WHEN " + RECORDS_OPERATION + " = 'debited' THEN -" + RECORDS_AMOUNT + " " +
+                    "ELSE 0 " +
+                    "END) AS Total " +
+                    " FROM " + TABLE_CATEGORIES + " " +
+                    "LEFT JOIN (SELECT * FROM " + TABLE_RECORDS + " ";
+            query += addFilterStatement(filter);
+            query += ") AS rec ON rec." + RECORDS_CATEGORY_ID + " = " + TABLE_CATEGORIES + "." + CATEGORIES_ID + " ";
+            if (filter.getCategory_id() != null){
+                query += "WHERE " + TABLE_CATEGORIES + "." + CATEGORIES_ID + " = " + filter.getCategory_id() + " OR " +
+                        TABLE_CATEGORIES + "." + CATEGORIES_ID + " IN (SELECT " + CATEGORIES_ID + " FROM category_hierarchy) ";
+            }
+            query += "GROUP BY " + TABLE_CATEGORIES + "." + CATEGORIES_ID + " " +
+                    "ORDER BY " + CATEGORIES_PARENT_ID + " ASC";
+
+            cursor = db.rawQuery(recursive_query + " " + query, null);
+            Log.d(TAG, "getCategoriesInDFS: " + recursive_query + " " + query);
 
             if (cursor.moveToFirst()){
                 do {
@@ -785,8 +1078,12 @@ public class BudgetDB extends SQLiteOpenHelper {
                     categoryMap.putIfAbsent(parent_id, new ArrayList<>());
                     categoryMap.get(category.getParent_id()).add(categoryDisplay);
 
-                    Log.d(TAG, "getCategoriesInDFS: " + categoryDisplay.getAmount());
-                }while(cursor.moveToNext());
+                    Log.d(TAG, "getCategoriesInDFS: " + (category == null) + " " + (filter == null));
+                    if (startCategory == null && (((Long) category.getId()).equals(filter.getCategory_id()))){
+                        startCategory = categoryDisplay;
+                    }
+                    Log.d(TAG, "getCategoriesInDFS: " + categoryDisplay.getCategory().getName());
+                } while(cursor.moveToNext());
             }
 
             Log.d(TAG, "categoryMap size: " + categoryMap.size());
@@ -799,7 +1096,19 @@ public class BudgetDB extends SQLiteOpenHelper {
         }
 
         double[] amount = {0};
-        getDFS(categoryMap, categoryDisplays, categoriesData, null, 1, amount);
+        Log.d(TAG, "getCategoriesInDFS before: " + categoryDisplays.size());
+
+        if (filter.getCategory_id() != null){
+            startCategory.setLevel(1);
+            categoryDisplays.add(startCategory);
+            if (startCategory.getAmount() != 0) {
+                categoriesData.addLabel("Others");
+                categoriesData.addEntry(new BarEntry(0, (float) startCategory.getAmount()));
+            }
+        }
+
+        getDFS(categoryMap, categoryDisplays, categoriesData, filter.getCategory_id(), (filter.getCategory_id() == null) ? 1 : 2, amount);
+        Log.d(TAG, "getCategoriesInDFS after: " + categoryDisplays.size());
 
         for (CategoryDisplay i : categoryDisplays){
             Log.d(TAG, i.getCategory().getId() + " " + i.getCategory().getName() + " " + i.getCategory().getParent_id() + " " + i.getLevel() + " " + i.getAmount());
@@ -814,17 +1123,18 @@ public class BudgetDB extends SQLiteOpenHelper {
         }
 
         double subtotal = 0; // Store sum of all children
-        int i = 0;
+        int i = ((parent_id == null) ? 0 : 1);
 
         for (CategoryDisplay categoryDisplay : categoryMap.get(parent_id)){
             categoryDisplay.setLevel(level);
             categoryDisplays.add(categoryDisplay);
+            Log.d(TAG, "getDFS: " + categoryDisplay.getCategory().getName());
 
             double[] childAmount = {0}; // Separate array for child recursion
             getDFS(categoryMap, categoryDisplays, categoriesData, categoryDisplay.getCategory().getId(), level+1, childAmount);
 
             categoryDisplay.setAmount(categoryDisplay.getAmount() + childAmount[0]); // Include child amounts
-            if (level == 1){
+            if (level == ((parent_id == null) ? 1 : 2) && (categoryDisplay.getAmount() != 0)){
                 categoriesData.addEntry(new BarEntry(i, (float) categoryDisplay.getAmount()));
                 categoriesData.addLabel(categoryDisplay.getCategory().getName());
                 categoriesData.setMinX(Math.min(categoriesData.getMinX(), (float) categoryDisplay.getAmount()));

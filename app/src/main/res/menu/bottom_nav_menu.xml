@@ -2,24 +2,20 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/PartiesAndAccounts"
-        android:icon="@drawable/miscellaneous"
-        android:title="Parties and accounts"/>
+        android:id="@+id/Records"
+        android:icon="@drawable/records"
+        android:title="Records"/>
     <item
         android:id="@+id/Categories"
         android:icon="@drawable/categories"
         android:title="Categories"/>
     <item
-        android:id="@+id/Records"
-        android:icon="@drawable/records"
-        android:title="Records"/>
+        android:id="@+id/PartiesAndAccounts"
+        android:icon="@drawable/miscellaneous"
+        android:title="Parties and accounts"/>
     <item
         android:id="@+id/Goals"
         android:icon="@drawable/goals"
         android:title="Goals"/>
-    <item
-        android:id="@+id/Analysis"
-        android:icon="@drawable/analysis"
-        android:title="Analysis"/>
 
 </menu>

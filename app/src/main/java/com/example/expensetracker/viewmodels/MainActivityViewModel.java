@@ -22,6 +22,8 @@ import com.example.expensetracker.repository.database.Party;
 import com.example.expensetracker.repository.database.Record;
 import com.example.expensetracker.repository.displayEntities.CategoryEntries;
 import com.example.expensetracker.repository.displayEntities.ChartData;
+import com.example.expensetracker.repository.displayEntities.Filter;
+import com.example.expensetracker.repository.displayEntities.LineChartData;
 import com.github.mikephil.charting.data.BarEntry;
 
 import java.util.ArrayList;
@@ -30,7 +32,9 @@ import java.util.function.Consumer;
 
 public class MainActivityViewModel extends AndroidViewModel {
     private final Repository repository;
+    private MutableLiveData<Filter> filterMutableLiveData = new MutableLiveData<>();
     private MutableLiveData<Cursor> records = new MutableLiveData<>();
+    private MutableLiveData<LineChartData> recordsChartData = new MutableLiveData<>();
     private MutableLiveData<Cursor> parties = new MutableLiveData<>();
     private MutableLiveData<ChartData> partiesChartData = new MutableLiveData<>();
     private MutableLiveData<Cursor> accounts = new MutableLiveData<>();
@@ -45,23 +49,28 @@ public class MainActivityViewModel extends AndroidViewModel {
         super(application);
         repository = new Repository(application.getApplicationContext());
 
+        filterMutableLiveData.setValue(new Filter());
+
         ChartData categoriesData = new ChartData();
-        repository.getAllCategoriesInDFS(categoriesData, categoryDisplays -> {
+        repository.getAllCategoriesInDFS(new Filter(), categoriesData, categoryDisplays -> {
             categories.postValue(categoryDisplays);
             categoriesChartData.postValue(categoriesData);
         });
-        repository.getAllRecords(cursor -> {
+
+        LineChartData lineChartData = new LineChartData();
+        repository.getAllRecords(lineChartData, new Filter(), cursor -> {
             records.postValue(cursor);
+            recordsChartData.postValue(lineChartData);
         });
 
         ChartData partiesData = new ChartData();
-        repository.getAllPartiesWithAmount(partiesData, cursor -> {
+        repository.getAllPartiesWithAmount(new Filter(), partiesData, cursor -> {
             parties.postValue(cursor);
             partiesChartData.postValue(partiesData);
         });
 
         ChartData accountsData = new ChartData();
-        repository.getAllAccountsWithAmounts(accountsData, cursor -> {
+        repository.getAllAccountsWithAmounts(new Filter(), accountsData, cursor -> {
             accounts.postValue(cursor);
             accountsChartData.postValue(accountsData);
         });
@@ -95,8 +104,8 @@ public class MainActivityViewModel extends AndroidViewModel {
     public void removeAccount(long id, Runnable callback){
         repository.removeAccount(id, callback);
     }
-    public void removeRecord(long id, Long category_id, double amount){
-        repository.removeRecord(id, category_id, amount);
+    public void removeRecord(long id, Long category_id, double amount, Runnable callback){
+        repository.removeRecord(id, category_id, amount, callback);
     }
     public void removeGoal(long id){
         repository.removeGoal(id);
@@ -118,14 +127,16 @@ public class MainActivityViewModel extends AndroidViewModel {
     };
 
     public void getAllRecords(Runnable callback){
-        repository.getAllRecords(cursor -> {
+        LineChartData lineChartData = new LineChartData();
+        repository.getAllRecords(lineChartData, filterMutableLiveData.getValue(), cursor -> {
             records.postValue(cursor);
+            recordsChartData.postValue(lineChartData);
             callback.run();
         });
     }
     public void getAllPartiesWithAmount(Runnable callback){
         ChartData partiesData = new ChartData();
-        repository.getAllPartiesWithAmount(partiesData, cursor -> {
+        repository.getAllPartiesWithAmount(filterMutableLiveData.getValue(), partiesData, cursor -> {
             parties.postValue(cursor);
             partiesChartData.postValue(partiesData);
             callback.run();
@@ -133,7 +144,8 @@ public class MainActivityViewModel extends AndroidViewModel {
     }
     public void getAllCategoriesInDFS(Runnable callback){
         ChartData categoriesData = new ChartData();
-        repository.getAllCategoriesInDFS(categoriesData, categoryDisplays -> {
+        repository.getAllCategoriesInDFS(filterMutableLiveData.getValue(), categoriesData, categoryDisplays -> {
+            Log.d(TAG, "getAllCategoriesInDFS: " + categoryDisplays.size());
             categories.postValue(categoryDisplays);
             categoriesChartData.postValue(categoriesData);
             callback.run();
@@ -141,14 +153,12 @@ public class MainActivityViewModel extends AndroidViewModel {
     }
     public void getAllAccountsWithAmount(Runnable callback){
         ChartData accountsData = new ChartData();
-        repository.getAllAccountsWithAmounts(accountsData, cursor -> {
+        repository.getAllAccountsWithAmounts(filterMutableLiveData.getValue(), accountsData, cursor -> {
             accounts.postValue(cursor);
             accountsChartData.postValue(accountsData);
             callback.run();
         });
     }
-
-
 
     public void getAllCategories(Consumer<Cursor> callback){ repository.getAllCategories(callback);}
     public void getAllAccounts(Consumer<Cursor> callback){repository.getAllAccounts(callback);}
@@ -171,6 +181,14 @@ public class MainActivityViewModel extends AndroidViewModel {
 
     public MutableLiveData<Cursor> getRecords() {
         return records;
+    }
+
+    public MutableLiveData<LineChartData> getRecordsChartData() {
+        return recordsChartData;
+    }
+
+    public void setRecordsChartData(MutableLiveData<LineChartData> recordsChartData) {
+        this.recordsChartData = recordsChartData;
     }
 
     public MutableLiveData<ChartData> getPartiesChartData() {
@@ -211,5 +229,13 @@ public class MainActivityViewModel extends AndroidViewModel {
 
     public void setCategoriesChartData(MutableLiveData<ChartData> categoriesChartData) {
         this.categoriesChartData = categoriesChartData;
+    }
+
+    public MutableLiveData<Filter> getFilterMutableLiveData() {
+        return filterMutableLiveData;
+    }
+
+    public void postToFilterMutableLiveData(Filter filter) {
+        filterMutableLiveData.setValue(filter);
     }
 }
