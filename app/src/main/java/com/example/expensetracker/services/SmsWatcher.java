@@ -16,7 +16,7 @@ import com.example.expensetracker.repository.Repository;
 public class SmsWatcher extends Service {
     private static final String TAG = "SmsWatcher";
 
-    Repository repository = new Repository(getApplication());
+    Repository repository = new Repository();
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {

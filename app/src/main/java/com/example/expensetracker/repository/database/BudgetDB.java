@@ -30,6 +30,7 @@ public class BudgetDB extends SQLiteOpenHelper {
     public static final String DATABASE_NAME = "BudgetDB";
     public static final int DATABASE_VERSION = 1;
     public static final String TAG = "BudgetDB";
+    private final SQLiteDatabase db = getWritableDatabase();
 
     // Specify formats for date and time
     public static final String TABLE_ACCOUNTS = "accounts";
@@ -76,6 +77,12 @@ public class BudgetDB extends SQLiteOpenHelper {
 
     public BudgetDB(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+    }
+
+    @Override
+    public synchronized void close() {
+        super.close();
+        if (db != null && db.isOpen()) db.close();
     }
 
     @Override
@@ -174,10 +181,8 @@ public class BudgetDB extends SQLiteOpenHelper {
         values.put(ACCOUNTS_ACCOUNT_NO, account.getAccount_no());
         long result = -1;
 
-        SQLiteDatabase db = this.getWritableDatabase();
         result = db.insertOrThrow(TABLE_ACCOUNTS, null, values);
         if (result == -1) Log.d(TAG, "insertAccount: " + result + " a.k.a insertion failed");
-        db.close();
 
         return result;
     }
@@ -188,10 +193,8 @@ public class BudgetDB extends SQLiteOpenHelper {
         values.put(CATEGORIES_PARENT_ID, category.getParent_id());
         long result = -1;
 
-        SQLiteDatabase db = getWritableDatabase();
         result = db.insertOrThrow(TABLE_CATEGORIES, null, values);
         if (result == -1) Log.d(TAG, "insertCategory: " + result + " a.k.a insertion failed");
-        db.close();
 
         return result;
     }
@@ -203,10 +206,8 @@ public class BudgetDB extends SQLiteOpenHelper {
         long result = -1;
 
         try {
-            SQLiteDatabase db = getWritableDatabase();
             result = db.insertOrThrow(TABLE_PARTY, null, values);
             if (result == -1) Log.d(TAG, "insertParty: " + result + " a.k.a insertion failed");
-            db.close();
         }
         catch (SQLiteException e){
             throw new SQLiteException("Insertion failed. Duplicate row or constraint issue.");
@@ -226,7 +227,6 @@ public class BudgetDB extends SQLiteOpenHelper {
         values.put(RECORDS_DESCRIPTION, record.getDescription());
         values.put(RECORDS_CATEGORY_ID, record.getCategory_id());
 
-        SQLiteDatabase db = this.getWritableDatabase();
         Log.d(TAG, "insertRecord: " + record.getCategory_id());
         long result = db.insertOrThrow(TABLE_RECORDS, null, values);
         if (result == -1) Log.d(TAG, "insertRecord: insertion = " + result + " a.k.a insertion failed");
@@ -236,7 +236,6 @@ public class BudgetDB extends SQLiteOpenHelper {
                 reviseGoalsStatus();
             }
         }
-        db.close();
     }
 
     public void insertGoal(Goal goal) throws SQLiteException{
@@ -262,16 +261,13 @@ public class BudgetDB extends SQLiteOpenHelper {
             throw new RuntimeException(e);
         }
 
-        SQLiteDatabase db = getWritableDatabase();
         long result = db.insertOrThrow(TABLE_GOALS, null, values);
         if (result == -1) Log.d(TAG, "insertGoal: insertion = " + result + " a.k.a insertion failed");
-        db.close();
     }
 
 
     public void deleteCategory(long id){
         try{
-            SQLiteDatabase db = getWritableDatabase();
             db.beginTransaction();
             db.execSQL("UPDATE " + TABLE_CATEGORIES + " SET " + CATEGORIES_PARENT_ID + " = " +
                     "(SELECT " + CATEGORIES_PARENT_ID + " FROM " + TABLE_CATEGORIES +
@@ -280,7 +276,6 @@ public class BudgetDB extends SQLiteOpenHelper {
             db.delete(TABLE_CATEGORIES, CATEGORIES_ID + " = ?", new String[]{String.valueOf(id)});
             db.setTransactionSuccessful();
             db.endTransaction();
-            db.close();
         }
         catch (SQLiteException e){
             Log.d(TAG, "deleteCategory: " + e.getMessage());
@@ -288,21 +283,17 @@ public class BudgetDB extends SQLiteOpenHelper {
     }
 
     public void deleteAccount(long id){
-        SQLiteDatabase db = getWritableDatabase();
         db.beginTransaction();
         db.delete(TABLE_ACCOUNTS, PARTIES_ID + " = ?", new String[]{String.valueOf(id)});
         db.setTransactionSuccessful();
         db.endTransaction();
-        db.close();
     }
     public void deleteParty(long id){
         try{
-            SQLiteDatabase db = getWritableDatabase();
             db.beginTransaction();
             db.delete(TABLE_PARTY, PARTIES_ID + " = ?", new String[]{String.valueOf(id)});
             db.setTransactionSuccessful();
             db.endTransaction();
-            db.close();
         }
         catch (SQLiteException e){
             Log.d(TAG, "deleteParty: " + e.getMessage());
@@ -311,12 +302,10 @@ public class BudgetDB extends SQLiteOpenHelper {
 
     public void deleteRecord(long id){
         try{
-            SQLiteDatabase db = getWritableDatabase();
             db.beginTransaction();
             db.delete(TABLE_RECORDS, RECORDS_ID + " = ?", new String[]{String.valueOf(id)});
             db.setTransactionSuccessful();
             db.endTransaction();
-            db.close();
         }
         catch (SQLiteException e){
             Log.d(TAG, "deleteRecord: " + e.getMessage());
@@ -325,12 +314,10 @@ public class BudgetDB extends SQLiteOpenHelper {
 
     public void deleteRecord(long id, Long category_id, double amount){
         try{
-            SQLiteDatabase db = getWritableDatabase();
             db.beginTransaction();
             db.delete(TABLE_RECORDS, RECORDS_ID + " = ?", new String[]{String.valueOf(id)});
             db.setTransactionSuccessful();
             db.endTransaction();
-            db.close();
             subtractExpenseOnGoal(category_id, amount);
         }
         catch (SQLiteException e){
@@ -339,12 +326,10 @@ public class BudgetDB extends SQLiteOpenHelper {
     }
 
     public void deleteGoal(long id) throws SQLiteException{
-        SQLiteDatabase db = getWritableDatabase();
         db.beginTransaction();
         db.delete(TABLE_GOALS, GOALS_ID + " = ?", new String[]{String.valueOf(id)});
         db.setTransactionSuccessful();
         db.endTransaction();
-        db.close();
     }
 
     public void updateCategory(Category category){
@@ -352,12 +337,10 @@ public class BudgetDB extends SQLiteOpenHelper {
         values.put(CATEGORIES_NAME, category.getName());
         values.put(CATEGORIES_PARENT_ID, category.getParent_id());
 
-        SQLiteDatabase db = getWritableDatabase();
         long result = db.update(TABLE_CATEGORIES, values,
                 CATEGORIES_ID + " = ?",
                 new String[]{String.valueOf(category.getId())});
         if (result == -1) Log.d(TAG, "updateCategory: " + result + " a.k.a update failed");
-        db.close();
     }
 
     public void updateParty(Party party){
@@ -365,12 +348,10 @@ public class BudgetDB extends SQLiteOpenHelper {
         values.put(PARTIES_NAME, party.getName());
         values.put(PARTIES_NICKNAME, party.getNickname());
 
-        SQLiteDatabase db = getWritableDatabase();
         long result = db.update(TABLE_PARTY, values,
                 PARTIES_ID + " = ?",
                 new String[]{String.valueOf(party.getId())});
         if (result == -1) Log.d(TAG, "updateParty: " + result + " a.k.a update failed");
-        db.close();
     }
 
     public void updateRecord(Record record, Long old_category_id, double old_goal){
@@ -385,7 +366,6 @@ public class BudgetDB extends SQLiteOpenHelper {
         values.put(RECORDS_CATEGORY_ID, record.getCategory_id());
 
         try {
-            SQLiteDatabase db = getWritableDatabase();
             long result = db.update(TABLE_RECORDS, values,
                     RECORDS_ID + " = ?",
                     new String[]{String.valueOf(record.getId())});
@@ -414,8 +394,6 @@ public class BudgetDB extends SQLiteOpenHelper {
             if (cursor2 != null) cursor2.close();
             if (cursor1 != null)cursor1.close();
 
-            db.close();
-
             if (old_category_id != record.getCategory_id()) {
                 subtractExpenseOnGoal(old_category_id, old_goal);
                 addExpenseOnGoal(record.getCategory_id(), record.getAmount());
@@ -430,14 +408,12 @@ public class BudgetDB extends SQLiteOpenHelper {
     public long getPartyId(String name){
         long result = -1;
         try {
-            SQLiteDatabase db = getWritableDatabase();
             Cursor cursor = db.rawQuery("SELECT " + PARTIES_ID + " FROM " + TABLE_PARTY + " WHERE " + PARTIES_NAME + " = ?", new String[]{name});
             if (cursor != null && cursor.moveToFirst()){
                 int id = cursor.getColumnIndex(PARTIES_ID);
                 if (id != -1) result = cursor.getLong(id);
 
             }
-            db.close();
         }
         catch (SQLiteException e){
             Log.d(TAG, "getPartyId: " + e.getMessage());
@@ -449,7 +425,6 @@ public class BudgetDB extends SQLiteOpenHelper {
     long searchAccount(String accountNo){
         long result = -1;
         try{
-            SQLiteDatabase db = getReadableDatabase();
             Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_ACCOUNTS + " WHERE " + ACCOUNTS_ACCOUNT_NO + " = ?", new String[]{accountNo});
             if (cursor.moveToFirst()) result = cursor.getLong(0);
             cursor.close();
@@ -471,11 +446,8 @@ public class BudgetDB extends SQLiteOpenHelper {
         values.put(GOALS_END_DATE, goal.getEnd_date());
         values.put(GOALS_STATUS, goal.getStatus());
 
-        SQLiteDatabase db = getWritableDatabase();
         long result = db.update(TABLE_GOALS, values, GOALS_ID + " = ?", new String[]{String.valueOf(goal.getId())});
         if (result == -1) Log.d(TAG, "updateGoal: " + result + " a.k.a update failed");
-
-        db.close();
     }
 
     public void addExpenseOnGoal(Long category_id, double amount){
@@ -488,8 +460,6 @@ public class BudgetDB extends SQLiteOpenHelper {
                 "FROM " + TABLE_CATEGORIES + " c " +
                 "INNER JOIN category_hierarchy ch ON c." + CATEGORIES_ID + " = ch." + CATEGORIES_PARENT_ID + ") ";
 
-
-        SQLiteDatabase db = getWritableDatabase();
         db.execSQL(recursive_query +
                 " " +
                 "UPDATE " + TABLE_GOALS + " " +
@@ -498,8 +468,6 @@ public class BudgetDB extends SQLiteOpenHelper {
                 GOALS_CATEGORY_ID + " = " + category_id + " OR " +
                 GOALS_CATEGORY_ID + " IS NULL) AND " +
                 GOALS_STATUS + " = 'active'");
-
-        db.close();
     }
 
     public void subtractExpenseOnGoal(long category_id, double amount){
@@ -512,8 +480,6 @@ public class BudgetDB extends SQLiteOpenHelper {
                 "FROM " + TABLE_CATEGORIES + " c " +
                 "INNER JOIN category_hierarchy ch ON c." + CATEGORIES_ID + " = ch." + CATEGORIES_PARENT_ID + ") ";
 
-
-        SQLiteDatabase db = getWritableDatabase();
         db.execSQL(recursive_query +
                 " " +
                 "UPDATE " + TABLE_GOALS + " " +
@@ -522,12 +488,9 @@ public class BudgetDB extends SQLiteOpenHelper {
                 GOALS_CATEGORY_ID + " = " + category_id + " OR " +
                 GOALS_CATEGORY_ID + " IS NULL) AND " +
                 GOALS_STATUS + " = 'active'");
-
-        db.close();
     }
 
     public void reviseGoalsStatus(){
-        SQLiteDatabase db = getWritableDatabase();
         db.execSQL("UPDATE " + TABLE_GOALS + " " +
                 "SET " + GOALS_STATUS + " = 'failed' " +
                 "WHERE " + GOALS_STATUS + " = 'active' AND " +
@@ -555,20 +518,16 @@ public class BudgetDB extends SQLiteOpenHelper {
         values.put(MAPPINGS_AMOUNT, mapping.getAmount());
         values.put(MAPPINGS_CATEGORY_ID, mapping.getCategory_id());
 
-        SQLiteDatabase db = getWritableDatabase();
-
         long result = db.insertOrThrow(TABLE_MAPPINGS, null, values);
         Log.d(TAG, "addMapping: " + result);
 
         if (result == -1) throw new SQLiteException("Insertion failed. Duplicate row or constraint issue.");
-        db.close();
     }
 
     public void deleteMapping(long id){
         try{
             SQLiteDatabase db = getWritableDatabase();
             db.delete(TABLE_MAPPINGS, MAPPINGS_ID + " = ?", new String[]{String.valueOf(id)});
-            db.close();
         }
         catch (SQLiteException e){
             Log.d(TAG, "deleteMapping: " + e.getMessage());
@@ -582,97 +541,12 @@ public class BudgetDB extends SQLiteOpenHelper {
         values.put(MAPPINGS_CATEGORY_ID, mapping.getCategory_id());
 
         try {
-            SQLiteDatabase db = getWritableDatabase();
             db.update(TABLE_MAPPINGS, values, MAPPINGS_ID + " = ?", new String[]{String.valueOf(mapping.getId())});
         }
         catch (SQLiteException e){
             Log.d(TAG, "updateMapping: " + e.getMessage());
         }
         Log.d(TAG, "updateMapping: Mappings updated");
-    }
-
-    private String addDateTimeFilterStatement(Filter filter){
-        String filterStatement = "";
-        boolean whereFlag = true;
-
-        if (filter.getStart_date() != null || filter.getEnd_date() != null){
-            if (whereFlag){
-                filterStatement += "WHERE ";
-                whereFlag = false;
-            }
-            else {
-                filterStatement += " AND ";
-            }
-            if (filter.getStart_date() != null && filter.getEnd_date() == null){
-                filterStatement += RECORDS_DATE + " >= DATE('" + filter.getStart_date() + "') ";
-            }
-            else if (filter.getStart_date() == null && filter.getEnd_date() != null){
-                filterStatement += RECORDS_DATE + " <= DATE('" + filter.getEnd_date() + "') ";
-            }
-            else {
-                filterStatement += RECORDS_DATE + " >= DATE('" + filter.getStart_date() + "') AND " +
-                        RECORDS_DATE + " <= DATE('" + filter.getEnd_date() + "') ";
-            }
-        }
-        if (filter.getStart_time() != null || filter.getEnd_time() != null){
-            if (whereFlag){
-                filterStatement += "WHERE ";
-                whereFlag = false;
-            }
-            else {
-                filterStatement += " AND ";
-            }
-            if (filter.getStart_time() != null && filter.getEnd_time() == null){
-                filterStatement += RECORDS_TIME + " >= '" + filter.getStart_time() + "' ";
-            }
-            else if (filter.getStart_time() == null && filter.getEnd_time() != null){
-                filterStatement += RECORDS_TIME + " <= '" + filter.getEnd_time() + "' ";
-            }
-            else {
-                filterStatement += RECORDS_TIME + " >= '" + filter.getStart_time() + "' AND " +
-                        RECORDS_TIME + " <= '" + filter.getEnd_time() + "' ";
-            }
-        }
-
-        return filterStatement;
-    }
-
-    private String addIdFilterStatement(Filter filter){
-        String filterStatement = "";
-
-        boolean whereFlag = true;
-        if (filter.getParty_id() != null){
-            if (whereFlag){
-                filterStatement += "WHERE ";
-                whereFlag = false;
-            }
-            else {
-                filterStatement += " AND ";
-            }
-            filterStatement += RECORDS_PARTY_ID + " = " + filter.getParty_id() + " ";
-        }
-        if (filter.getAccount_id() != null){
-            if (whereFlag){
-                filterStatement += "WHERE ";
-                whereFlag = false;
-            }
-            else {
-                filterStatement += " AND ";
-            }
-            filterStatement += RECORDS_ACCOUNT_ID + " = " + filter.getAccount_id() + " ";
-        }
-        if (filter.getCategory_id() != null){
-            if (whereFlag){
-                filterStatement += "WHERE ";
-                whereFlag = false;
-            }
-            else {
-                filterStatement += " AND ";
-            }
-            filterStatement += TABLE_CATEGORIES + "." + CATEGORIES_ID + " IN (SELECT " + CATEGORIES_ID + " FROM category_hierarchy) ";
-        }
-
-        return filterStatement;
     }
 
     private String addFilterStatement(Filter filter){
@@ -763,7 +637,6 @@ public class BudgetDB extends SQLiteOpenHelper {
 
         Cursor cursor = null;
         try{
-            SQLiteDatabase db = this.getReadableDatabase();
             Log.d(TAG, "getAllRecords is open: " + db.isOpen());
 
             String query = "SELECT " +
@@ -797,8 +670,6 @@ public class BudgetDB extends SQLiteOpenHelper {
     public void getRecordsLineChartData(LineChartData lineChartData, Filter filter) throws ParseException {
         // Assuming each day transactions for now
         Cursor cursor;
-
-        SQLiteDatabase db = getReadableDatabase();
 
         String recursive_query = "WITH RECURSIVE category_hierarchy AS (" +
                 "SELECT " + CATEGORIES_ID + " " +
@@ -870,7 +741,6 @@ public class BudgetDB extends SQLiteOpenHelper {
     public Cursor getAllMappings(){
         Cursor cursor = null;
 
-        SQLiteDatabase db = getReadableDatabase();
         cursor = db.rawQuery("SELECT " + TABLE_MAPPINGS + "." + MAPPINGS_ID + " AS _id, " + TABLE_PARTY + "." + PARTIES_NICKNAME + "," +
                 MAPPINGS_AMOUNT + "," + TABLE_CATEGORIES + "." + CATEGORIES_NAME + " " +
                 "FROM " + TABLE_MAPPINGS + " " +
@@ -885,8 +755,6 @@ public class BudgetDB extends SQLiteOpenHelper {
 
     public Long getCategoryUsingMapping(long partyId, double amount){
         try {
-            SQLiteDatabase db = getReadableDatabase();
-
             Cursor cursor = db.rawQuery("SELECT " + MAPPINGS_CATEGORY_ID + " FROM " + TABLE_MAPPINGS +
                     " WHERE (" + MAPPINGS_PARTY_ID + " = ? OR " + MAPPINGS_AMOUNT + " IS NULL) " +
                     "AND (" + MAPPINGS_PARTY_ID + " IS NULL OR " + MAPPINGS_AMOUNT + " = ?) " +
@@ -905,7 +773,6 @@ public class BudgetDB extends SQLiteOpenHelper {
             }
 
             cursor.close();
-            db.close();
         }
         catch (SQLiteException e){
             Log.d(TAG, "getCategoryUsingMapping: " + e.getMessage());
@@ -916,7 +783,6 @@ public class BudgetDB extends SQLiteOpenHelper {
 
     public Cursor getAllPartiesWithAmounts(Filter filter, ChartData partiesData){
         Cursor cursor = null;
-        SQLiteDatabase db = getReadableDatabase();
 
         String recursive_query = "WITH RECURSIVE category_hierarchy AS (" +
                 "SELECT " + CATEGORIES_ID + " " +
@@ -974,8 +840,6 @@ public class BudgetDB extends SQLiteOpenHelper {
         Cursor cursor = null;
 
         try {
-            SQLiteDatabase db = getReadableDatabase();
-
             String recursive_query = "WITH RECURSIVE category_hierarchy AS (" +
                     "SELECT " + CATEGORIES_ID + " " +
                     "FROM " + TABLE_CATEGORIES + " " +
@@ -1038,8 +902,6 @@ public class BudgetDB extends SQLiteOpenHelper {
         CategoryDisplay startCategory = null;
 
         try {
-            SQLiteDatabase db = getReadableDatabase();
-
             String recursive_query = "WITH RECURSIVE category_hierarchy AS (" +
                     "SELECT " + CATEGORIES_ID + " " +
                     "FROM " + TABLE_CATEGORIES + " " +
@@ -1087,9 +949,7 @@ public class BudgetDB extends SQLiteOpenHelper {
             }
 
             Log.d(TAG, "categoryMap size: " + categoryMap.size());
-
             cursor.close();
-            db.close();
         }
         catch (SQLiteException e){
             Log.d(TAG, "getCategoriesInDFS: " + e.getMessage());
@@ -1099,31 +959,32 @@ public class BudgetDB extends SQLiteOpenHelper {
         Log.d(TAG, "getCategoriesInDFS before: " + categoryDisplays.size());
 
         if (filter.getCategory_id() != null){
-            startCategory.setLevel(1);
-            categoryDisplays.add(startCategory);
             if (startCategory.getAmount() != 0) {
-                categoriesData.addLabel("Others");
+                categoriesData.addLabel(startCategory.getCategory().getName());
                 categoriesData.addEntry(new BarEntry(0, (float) startCategory.getAmount()));
+                categoriesData.setMinX(Math.min(categoriesData.getMinX(), (float) startCategory.getAmount()));
+                categoriesData.setMaxX(Math.max(categoriesData.getMaxX(), (float) startCategory.getAmount()));
             }
         }
 
-        getDFS(categoryMap, categoryDisplays, categoriesData, filter.getCategory_id(), (filter.getCategory_id() == null) ? 1 : 2, amount);
-        Log.d(TAG, "getCategoriesInDFS after: " + categoryDisplays.size());
+        getDFS(categoryMap, categoryDisplays, categoriesData, (startCategory == null) ? null : startCategory.getCategory().getParent_id(), 1, ((filter.getCategory_id() == null) ? 1 : 2), amount);
+        Log.d(TAG, "getCategoriesInDFS after: " + categoriesData.getEntries().size() + " " + categoriesData.getLabels().size());
 
-        for (CategoryDisplay i : categoryDisplays){
-            Log.d(TAG, i.getCategory().getId() + " " + i.getCategory().getName() + " " + i.getCategory().getParent_id() + " " + i.getLevel() + " " + i.getAmount());
+        for (String i : categoriesData.getLabels()){
+            Log.d(TAG, i);
         }
 
         return categoryDisplays;
     }
 
-    private void getDFS (Map<Long, ArrayList<CategoryDisplay>> categoryMap, ArrayList<CategoryDisplay> categoryDisplays, ChartData categoriesData, Long parent_id, int level, double[] amount){
+    private void getDFS (Map<Long, ArrayList<CategoryDisplay>> categoryMap, ArrayList<CategoryDisplay> categoryDisplays, ChartData categoriesData, Long parent_id, int level, int root_level, double[] amount){
         if (!categoryMap.containsKey(parent_id)) {
             return;
         }
 
         double subtotal = 0; // Store sum of all children
-        int i = ((parent_id == null) ? 0 : 1);
+        int i = categoriesData.getLabels().size();
+        Log.d(TAG, "Check i : " + i);
 
         for (CategoryDisplay categoryDisplay : categoryMap.get(parent_id)){
             categoryDisplay.setLevel(level);
@@ -1131,10 +992,11 @@ public class BudgetDB extends SQLiteOpenHelper {
             Log.d(TAG, "getDFS: " + categoryDisplay.getCategory().getName());
 
             double[] childAmount = {0}; // Separate array for child recursion
-            getDFS(categoryMap, categoryDisplays, categoriesData, categoryDisplay.getCategory().getId(), level+1, childAmount);
+            getDFS(categoryMap, categoryDisplays, categoriesData, categoryDisplay.getCategory().getId(), level+1, root_level, childAmount);
 
             categoryDisplay.setAmount(categoryDisplay.getAmount() + childAmount[0]); // Include child amounts
-            if (level == ((parent_id == null) ? 1 : 2) && (categoryDisplay.getAmount() != 0)){
+            if ((level == root_level) && (categoryDisplay.getAmount() != 0)){
+                Log.d(TAG, "Passed");
                 categoriesData.addEntry(new BarEntry(i, (float) categoryDisplay.getAmount()));
                 categoriesData.addLabel(categoryDisplay.getCategory().getName());
                 categoriesData.setMinX(Math.min(categoriesData.getMinX(), (float) categoryDisplay.getAmount()));
@@ -1150,7 +1012,6 @@ public class BudgetDB extends SQLiteOpenHelper {
     public Cursor getAllCategories() throws SQLiteException{
         Cursor cursor = null;
 
-        SQLiteDatabase db = getReadableDatabase();
         cursor = db.rawQuery("SELECT " + CATEGORIES_ID + " AS _id, " +
                 CATEGORIES_NAME + " " +
                 "FROM " + TABLE_CATEGORIES, null);
@@ -1161,7 +1022,6 @@ public class BudgetDB extends SQLiteOpenHelper {
     public Cursor getAllAccounts() throws SQLiteException {
         Cursor cursor = null;
 
-        SQLiteDatabase db = getReadableDatabase();
         cursor = db.rawQuery("SELECT " + ACCOUNTS_ID + " AS _id," +
                 ACCOUNTS_ACCOUNT_NO + " " +
                 "FROM " + TABLE_ACCOUNTS, null);
@@ -1172,7 +1032,6 @@ public class BudgetDB extends SQLiteOpenHelper {
     public Cursor getAllParties() throws SQLiteException {
         Cursor cursor = null;
 
-        SQLiteDatabase db = getReadableDatabase();
         cursor = db.rawQuery("SELECT " + PARTIES_ID + " AS _id," +
                 PARTIES_NICKNAME +
                 " FROM " + TABLE_PARTY, null);
@@ -1183,7 +1042,6 @@ public class BudgetDB extends SQLiteOpenHelper {
     public Cursor getAllGoals(){
         Cursor cursor = null;
 
-        SQLiteDatabase db = getReadableDatabase();
         cursor = db.rawQuery("SELECT " +
                 TABLE_GOALS + "." + GOALS_ID + " AS _id," +
                 TABLE_GOALS + "." + GOALS_NAME + "," +
@@ -1211,7 +1069,6 @@ public class BudgetDB extends SQLiteOpenHelper {
         SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         SimpleDateFormat outputFormat = new SimpleDateFormat("dd-MM", Locale.getDefault());
 
-        SQLiteDatabase db = getReadableDatabase();
         cursor = db.rawQuery("SELECT " + RECORDS_DATE + ", " +
                 "SUM(CASE " +
                 "WHEN " + RECORDS_OPERATION + " = 'credited' THEN " + RECORDS_AMOUNT + " " +
@@ -1242,7 +1099,6 @@ public class BudgetDB extends SQLiteOpenHelper {
         } while (cursor.moveToNext());
 
         cursor.close();
-        db.close();
     }
 
     public void getSevenDaysCategoriesAmounts(CategoryEntries categoryEntries){
@@ -1250,7 +1106,6 @@ public class BudgetDB extends SQLiteOpenHelper {
         ArrayList<BarEntry> entries = new ArrayList<>();
         ArrayList<String> categories = new ArrayList<>();
 
-        SQLiteDatabase db = getReadableDatabase();
         cursor = db.rawQuery("SELECT " + CATEGORIES_NAME + ", " +
                 "SUM(CASE " +
                 "WHEN " + RECORDS_OPERATION + " = 'credited' THEN " + RECORDS_AMOUNT + " " +
@@ -1279,7 +1134,6 @@ public class BudgetDB extends SQLiteOpenHelper {
         } while (cursor.moveToNext());
 
         cursor.close();
-        db.close();
 
         for (int j=0 ; j<entries.size() ; j++){
             Log.d(TAG, "getSevenDaysCategoriesAmounts: " + entries.get(j) + " " + categories.get(j));
@@ -1297,7 +1151,6 @@ public class BudgetDB extends SQLiteOpenHelper {
         SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         SimpleDateFormat outputFormat = new SimpleDateFormat("dd-MM", Locale.getDefault());
 
-        SQLiteDatabase db = getReadableDatabase();
         cursor = db.rawQuery("SELECT " + RECORDS_DATE + "," + CATEGORIES_NAME + ", " +
                         "SUM(CASE " +
                         "WHEN " + RECORDS_OPERATION + " = 'credited' THEN " + RECORDS_AMOUNT + " " +
@@ -1370,12 +1223,10 @@ public class BudgetDB extends SQLiteOpenHelper {
         }
 
         cursor.close();
-        db.close();
     }
 
 
     public void test(){
-        SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_RECORDS, null);
         if (cursor != null && cursor.moveToFirst()) {
             do {
@@ -1384,5 +1235,6 @@ public class BudgetDB extends SQLiteOpenHelper {
             cursor.close();
         }
     }
+
 
 }

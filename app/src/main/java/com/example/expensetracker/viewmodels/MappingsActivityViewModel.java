@@ -19,7 +19,7 @@ public class MappingsActivityViewModel extends AndroidViewModel {
 
     public MappingsActivityViewModel(@NonNull Application application) {
         super(application);
-        repository = new Repository(application.getApplicationContext());
+        repository = new Repository();
         repository.getAllMappings(new Consumer<Cursor>() {
             @Override
             public void accept(Cursor cursor) {

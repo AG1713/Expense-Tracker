@@ -79,6 +79,10 @@ public class PartiesFragment extends Fragment {
 
         // TODO: Empty textview
 
+        viewModel.getFilterMutableLiveData().observe(getViewLifecycleOwner(), filter -> viewModel.getAllPartiesWithAmount(() -> {
+            // Do nothing
+        }));
+
         partyMenuCallback = new PartyMenuCallback() {
             @Override
             public void onUpdate(Party party) {
@@ -142,6 +146,9 @@ public class PartiesFragment extends Fragment {
             @Override
             public void onChanged(Cursor cursor) {
                 if (cursor != null){
+                    if (cursor.getCount() == 0) emptyView.setVisibility(View.VISIBLE);
+                    else emptyView.setVisibility(View.GONE);
+
                     if (adapter != null) adapter.swapCursor(cursor);
                     else {
                         adapter = new PartiesAdapter(cursor, partyMenuCallback);

@@ -8,6 +8,7 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.example.expensetracker.ErrorCallback;
+import com.example.expensetracker.MyApplication;
 import com.example.expensetracker.repository.database.Account;
 import com.example.expensetracker.repository.database.BudgetDB;
 import com.example.expensetracker.repository.database.Category;
@@ -35,8 +36,8 @@ public class Repository {
     ExecutorService executor;
     Handler handler;
 
-    public Repository(Context context){
-        db = new BudgetDB(context);
+    public Repository(){
+        db = MyApplication.getDatabaseInstance();
         executor = Executors.newSingleThreadExecutor();
         handler = new android.os.Handler(Looper.getMainLooper());
     }

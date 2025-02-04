@@ -47,7 +47,7 @@ public class MainActivityViewModel extends AndroidViewModel {
 
     public MainActivityViewModel(@NonNull Application application) {
         super(application);
-        repository = new Repository(application.getApplicationContext());
+        repository = new Repository();
 
         filterMutableLiveData.setValue(new Filter());
 

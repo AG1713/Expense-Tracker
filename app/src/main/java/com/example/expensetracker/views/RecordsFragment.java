@@ -74,6 +74,7 @@ public class RecordsFragment extends Fragment {
     Dialog dialog;
     LineChart lineChart;
     RecordMenuCallback callback;
+    TextView emptyView;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -83,6 +84,7 @@ public class RecordsFragment extends Fragment {
         recyclerView = binding.recyclerView;
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         lineChart = binding.lineChart;
+        emptyView = binding.emptyTextView;
 
         callback = new RecordMenuCallback() {
             @Override
@@ -102,6 +104,9 @@ public class RecordsFragment extends Fragment {
 
         viewModel.getRecords().observe(getViewLifecycleOwner(), cursor -> {
             if (cursor != null){
+                if (cursor.getCount() == 0) emptyView.setVisibility(View.VISIBLE);
+                else emptyView.setVisibility(View.GONE);
+
                 if (adapter != null) adapter.swapCursor(cursor);
                 else {
                     adapter = new RecordsAdapter(cursor, callback);

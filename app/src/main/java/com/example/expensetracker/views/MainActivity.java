@@ -87,6 +87,8 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+
+
         preferences = getSharedPreferences("Settings", MODE_PRIVATE);
         checkPermissions();
 

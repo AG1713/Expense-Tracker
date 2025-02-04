@@ -74,6 +74,10 @@ public class AccountsFragment extends Fragment {
 
         // TODO: empty recyclerview textview
 
+        viewModel.getFilterMutableLiveData().observe(getViewLifecycleOwner(), filter -> viewModel.getAllAccountsWithAmount(() -> {
+            // Do nothing
+        }));
+
         menuCallback = new AccountMenuCallback() {
             @Override
             public void onDelete(Account account) {

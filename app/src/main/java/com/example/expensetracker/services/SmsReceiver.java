@@ -21,7 +21,7 @@ public class SmsReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        Repository repository = new Repository(context.getApplicationContext());
+        Repository repository = new Repository();
         Bundle bundle = intent.getExtras();
         assert bundle != null;
         String format = bundle.getString("format");

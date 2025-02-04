@@ -10,14 +10,19 @@ import androidx.work.Configuration;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
+import com.example.expensetracker.repository.database.BudgetDB;
+
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
 public class MyApplication extends Application {
+    private static BudgetDB budgetDB;
 
     @Override
     public void onCreate() {
         super.onCreate();
+
+        budgetDB = new BudgetDB(this);
 
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.HOUR_OF_DAY, 0);
@@ -44,5 +49,17 @@ public class MyApplication extends Application {
 
 
     }
+
+    @Override
+    public void onTerminate() {
+        super.onTerminate();
+        if (budgetDB != null) budgetDB.close();
+    }
+
+    public static BudgetDB getDatabaseInstance() {
+        return budgetDB;
+    }
+
+
 
 }

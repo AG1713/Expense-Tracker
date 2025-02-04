@@ -61,6 +61,7 @@ public class CategoriesFragment extends Fragment {
     FloatingActionButton fab;
     Dialog dialog;
     HorizontalBarChart barChart;
+    TextView emptyView;
     private final String TAG = "CategoriesFragment";
 
 
@@ -75,7 +76,12 @@ public class CategoriesFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.addItemDecoration(new DividerItemDecoration(getContext(), DividerItemDecoration.VERTICAL));
         barChart = binding.horizontalBarChart;
+        emptyView = binding.emptyTextView;
         fab = binding.fab;
+
+        viewModel.getFilterMutableLiveData().observe(getViewLifecycleOwner(), filter -> viewModel.getAllCategoriesInDFS(() -> {
+            // Do nothing
+        }));
 
         viewModel.getCategoriesChartData().observe(getViewLifecycleOwner(), new Observer<ChartData>() {
             @Override
@@ -117,6 +123,7 @@ public class CategoriesFragment extends Fragment {
                     yAxis.setAxisMinimum(chartData.getMinX() - (Math.abs(chartData.getMinX())*0.3f));
                     yAxis.setAxisMaximum(chartData.getMaxX() + (Math.abs(chartData.getMaxX())*0.3f));
 
+                    barChart.fitScreen();
                     barChart.getLegend().setEnabled(false);
                     barChart.getAxisRight().setEnabled(false);
                     barChart.setDrawValueAboveBar(true);
@@ -132,6 +139,8 @@ public class CategoriesFragment extends Fragment {
 
         viewModel.getCategories().observe(getViewLifecycleOwner(), categoryDisplays -> {
             if (categoryDisplays != null){
+                if (categoryDisplays.isEmpty()) emptyView.setVisibility(View.VISIBLE);
+                else emptyView.setVisibility(View.GONE);
                 if (adapter != null) adapter.setCategoryDisplays(categoryDisplays);
                 else {
                     adapter = new CategoriesAdapter(categoryDisplays, new CategoryMenuCallback() {
