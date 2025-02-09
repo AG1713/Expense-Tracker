@@ -90,7 +90,15 @@ public class MainActivity extends AppCompatActivity {
 
 
         preferences = getSharedPreferences("Settings", MODE_PRIVATE);
-        checkPermissions();
+        if (preferences.getBoolean("First launch", true)){
+            requestRuntimePermissions();
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putBoolean("First launch", false);
+            editor.apply();
+        }
+        if (preferences.getBoolean(getString(R.string.persistent_notification_enabled), false)){
+            startForegroundService(new Intent(getApplicationContext(), SmsWatcher.class));
+        }
 
         viewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
         toolbar = binding.toolbar;
@@ -240,62 +248,6 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "onCreate: " + e.getMessage());
         }
 
-    }
-
-    private void checkPermissions() {
-        // List of permissions to check
-        String[] permissions = {
-                Manifest.permission.POST_NOTIFICATIONS,  // Notification (Android 13+)
-                Manifest.permission.RECEIVE_SMS,        // Receive SMS
-                Manifest.permission.READ_SMS            // Read SMS
-        };
-
-        // List of permissions to request
-        ArrayList<String> permissionsToRequest = new ArrayList<>();
-
-        // Check each permission
-        for (String permission : permissions) {
-            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
-                permissionsToRequest.add(permission);
-            }
-        }
-
-        // Request permissions if needed
-        if (!permissionsToRequest.isEmpty()) {
-            ActivityCompat.requestPermissions(
-                    this,
-                    permissionsToRequest.toArray(new String[0]),
-                    PERMISSION_REQUEST_CODE
-            );
-        }
-        else {
-            if (preferences.getBoolean(getString(R.string.persistent_notification_enabled), false)){
-                startForegroundService(new Intent(this, SmsWatcher.class));
-            }
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            for (int i = 0; i < permissions.length; i++) {
-                if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
-                    // Permission granted
-                    SharedPreferences.Editor editor = preferences.edit();
-                    editor.putBoolean(getString(R.string.persistent_notification_enabled), true);
-                    editor.apply();
-                    startForegroundService(new Intent(this, SmsWatcher.class));
-                } else {
-                    // Permission denied
-                    SharedPreferences.Editor editor = preferences.edit();
-                    editor.putBoolean(getString(R.string.persistent_notification_enabled), false);
-                    editor.apply();
-                    System.out.println("Permission denied: " + permissions[i]);
-                }
-            }
-        }
     }
 
     void showFiltersDialog(){
@@ -500,6 +452,36 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == PERMISSION_REQUEST_CODE){
+            for (int result : grantResults){
+                if (result == PackageManager.PERMISSION_DENIED) return;
+            }
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putBoolean(getString(R.string.persistent_notification_enabled), true);
+            editor.apply();
+            startForegroundService(new Intent(getApplicationContext(), SmsWatcher.class));
+        }
+
+    }
+
+    private void requestRuntimePermissions(){
+        String[] permissions = {
+                Manifest.permission.RECEIVE_SMS,
+                Manifest.permission.READ_SMS,
+                Manifest.permission.POST_NOTIFICATIONS
+        };
+
+        for (String permission : permissions){
+            if (ActivityCompat.checkSelfPermission(getApplicationContext(), permission) == PackageManager.PERMISSION_DENIED){
+                requestPermissions(new String[]{permission}, PERMISSION_REQUEST_CODE);
+            }
+        }
     }
 
 }
