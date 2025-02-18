@@ -11,6 +11,20 @@
         android:layout_height="match_parent"
         tools:context=".views.MappingsActivity">
 
+        <TextView
+            android:id="@+id/mapping_description"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="15dp"
+            android:text="Here, you can set any amount and/or party
+of a transaction so that, when the transaction of the particular
+amount or party happens, it will be automatically mapped to the set category"
+            android:textAlignment="gravity"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+
         <include
             android:id="@+id/mapping_info"
             layout="@layout/mapping_item"
@@ -19,7 +33,7 @@
             android:layout_margin="15dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
+            app:layout_constraintTop_toBottomOf="@id/mapping_description"/>
 
         <TextView
             android:id="@+id/emptyTextView"
