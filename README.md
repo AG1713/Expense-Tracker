@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Tracker - README</title>
 </head>
 <body>
 
@@ -28,7 +27,13 @@
 </ul>
 
 <h2>📸 Screenshots</h2>
-<p><i>(Add relevant screenshots here once available.)</i></p>
+<p><i>Here are some previews of the Expense Tracker Application</i></p>
+<div style="display: flex; gap: 10px; overflow-x: auto;">
+    <img src="Screenshots/Home Page.jpg" alt="Home Screen" width="300">
+    <img src="Screenshots/Categories Page.jpg" alt="Categories Screen" width="300">
+    <img src="Screenshots/Accounts Section.jpg" alt="Accounts Section" width="300">
+    <img src="Screenshots/Goals Page.jpg" alt="Goals Screen" width="300">
+</div>
 
 <h2>📥 Installation</h2>
 <ol>
@@ -37,13 +42,6 @@
     <li>Open the project in <b>Android Studio</b>.</li>
     <li>Build and run the app on an emulator or a physical device.</li>
 </ol>
-
-<h2>🔮 Future Enhancements</h2>
-<ul>
-    <li>🚀 <b>Cloud Sync:</b> Sync transactions across devices.</li>
-    <li>🚀 <b>Budgeting Feature:</b> Set and track monthly budgets.</li>
-    <li>🚀 <b>Custom Expense Rules:</b> Automate categorization based on user-defined rules.</li>
-</ul>
 
 <h2>🤝 Contributions</h2>
 <p>Feel free to fork the repo and submit PRs for improvements! 🚀</p>
