@@ -96,9 +96,9 @@ public class MainActivity extends AppCompatActivity {
             editor.putBoolean("First launch", false);
             editor.apply();
         }
-        if (preferences.getBoolean(getString(R.string.persistent_notification_enabled), false)){
-            startForegroundService(new Intent(getApplicationContext(), SmsWatcher.class));
-        }
+//        if (preferences.getBoolean(getString(R.string.persistent_notification_enabled), false)){
+//            startForegroundService(new Intent(getApplicationContext(), SmsWatcher.class));
+//        }
 
         viewModel = new ViewModelProvider(this).get(MainActivityViewModel.class);
         toolbar = binding.toolbar;

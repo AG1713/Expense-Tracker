@@ -36,14 +36,13 @@
                 android:id="@+id/persistent_notification_info"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Persistent Notification: "
+                android:text="Track Sms for transactions: "
                 android:layout_weight="1"/>
 
             <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/persistent_notification_setting"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:enabled="false"/>
+                android:layout_height="wrap_content"/>
         </LinearLayout>
 
 

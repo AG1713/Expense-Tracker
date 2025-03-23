@@ -48,16 +48,21 @@ public class SettingsActivity extends AppCompatActivity {
         });
 
         preferences = getSharedPreferences("Settings", MODE_PRIVATE);
-        if (checkPermissions()) binding.persistentNotificationSetting.setEnabled(true);
-        layoutListener = new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (!checkPermissions()){
-                    requestRuntimePermissions();
-                    if (!checkPermissions()) launchSettings();
-                }
-            }
-        };
+//        if (checkPermissions()) binding.persistentNotificationSetting.setEnabled(true);
+//        layoutListener = new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                if (!checkPermissions()){
+//                    requestRuntimePermissions();
+//                    if (!checkPermissions()) launchSettings();
+//                }
+//            }
+//        };
+
+        if (preferences.getBoolean(getString(R.string.persistent_notification_enabled), false)){
+            binding.persistentNotificationSetting.setChecked(true);
+        }
+        else binding.persistentNotificationSetting.setChecked(false);
         binding.persistentNotificationSettingLayout.setOnClickListener(layoutListener);
 
         binding.persistentNotificationSetting.setChecked(preferences.getBoolean(getString(R.string.persistent_notification_enabled), false));
@@ -65,16 +70,14 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked){
-                    requestRuntimePermissions();
+                    SharedPreferences.Editor editor = preferences.edit();
+                    editor.putBoolean(getString(R.string.persistent_notification_enabled), true);
+                    editor.apply();
                 }
                 else {
                     SharedPreferences.Editor editor = preferences.edit();
                     editor.putBoolean(getString(R.string.persistent_notification_enabled), false);
                     editor.apply();
-
-                    Intent i = new Intent(getApplicationContext(), SmsWatcher.class);
-                    i.setAction("STOP_SERVICE");
-                    startForegroundService(i);
                 }
             }
         });
@@ -84,99 +87,99 @@ public class SettingsActivity extends AppCompatActivity {
 
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == PERMISSION_REQUEST_CODE){
-            for (int result : grantResults){
-                if (result == PackageManager.PERMISSION_DENIED){
-                    binding.persistentNotificationSetting.setChecked(false);
-                    return;
-                }
-            }
-            SharedPreferences.Editor editor = preferences.edit();
-            editor.putBoolean(getString(R.string.persistent_notification_enabled), true);
-            editor.apply();
-            Log.d(TAG, "CHECK");
-            startForegroundService(new Intent(getApplicationContext(), SmsWatcher.class));
-            binding.persistentNotificationSetting.setEnabled(true);
-        }
-
-    }
-
-    private void requestRuntimePermissions(){
-        String[] permissions = {
-                Manifest.permission.RECEIVE_SMS,
-                Manifest.permission.READ_SMS,
-                Manifest.permission.POST_NOTIFICATIONS
-        };
-        List<String> neededPermissions = new ArrayList<>();
-
-        for (String permission : permissions){
-            if (ActivityCompat.checkSelfPermission(getApplicationContext(), permission) == PackageManager.PERMISSION_DENIED){
-                neededPermissions.add(permission);
-            }
-        }
-
-        Log.d(TAG, "requestRuntimePermissions: " + !neededPermissions.isEmpty());
-        if (!neededPermissions.isEmpty()){
-            requestPermissions(neededPermissions.toArray(new String[0]), PERMISSION_REQUEST_CODE);
-        }
-        else {
-            SharedPreferences.Editor editor = preferences.edit();
-            editor.putBoolean(getString(R.string.persistent_notification_enabled), true);
-            editor.apply();
-            startForegroundService(new Intent(getApplicationContext(), SmsWatcher.class));
-        }
-    }
-
-    private boolean checkPermissions(){
-        String[] permissions = {
-                Manifest.permission.RECEIVE_SMS,
-                Manifest.permission.READ_SMS,
-                Manifest.permission.POST_NOTIFICATIONS
-        };
-
-        for (String permission : permissions){
-            if (ActivityCompat.checkSelfPermission(getApplicationContext(), permission) != PackageManager.PERMISSION_GRANTED){
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private void launchSettings(){
-        String[] permissions = {
-                Manifest.permission.RECEIVE_SMS,
-                Manifest.permission.READ_SMS,
-                Manifest.permission.POST_NOTIFICATIONS
-        };
-
-        for (String permission : permissions){
-            if (ActivityCompat.checkSelfPermission(getApplicationContext(), permission) == PackageManager.PERMISSION_DENIED){
-                new AlertDialog.Builder(this)
-                        .setTitle("Permissions denied")
-                        .setMessage("You have to enable settings manually")
-                        .setPositiveButton("Go to settings", (dialog, which) -> {
-                            Intent i = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                            i.setData(android.net.Uri.parse("package:" + getPackageName()));
-                            startActivity(i);
-                        })
-                        .setNegativeButton("Cancel", (dialog, which) -> Log.d(TAG, "Permission denied!"))
-                        .show();
-            }
-        }
-    }
-
-
-    @Override
-    protected void onPostResume() {
-        super.onPostResume();
-        if (checkPermissions()) {
-            binding.persistentNotificationSetting.setEnabled(true);
-            binding.persistentNotificationSetting.setChecked(true);
-        }
-    }
+//    @Override
+//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+//        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+//
+//        if (requestCode == PERMISSION_REQUEST_CODE){
+//            for (int result : grantResults){
+//                if (result == PackageManager.PERMISSION_DENIED){
+//                    binding.persistentNotificationSetting.setChecked(false);
+//                    return;
+//                }
+//            }
+//            SharedPreferences.Editor editor = preferences.edit();
+//            editor.putBoolean(getString(R.string.persistent_notification_enabled), true);
+//            editor.apply();
+//            Log.d(TAG, "CHECK");
+//            startForegroundService(new Intent(getApplicationContext(), SmsWatcher.class));
+//            binding.persistentNotificationSetting.setEnabled(true);
+//        }
+//
+//    }
+//
+//    private void requestRuntimePermissions(){
+//        String[] permissions = {
+//                Manifest.permission.RECEIVE_SMS,
+//                Manifest.permission.READ_SMS,
+//                Manifest.permission.POST_NOTIFICATIONS
+//        };
+//        List<String> neededPermissions = new ArrayList<>();
+//
+//        for (String permission : permissions){
+//            if (ActivityCompat.checkSelfPermission(getApplicationContext(), permission) == PackageManager.PERMISSION_DENIED){
+//                neededPermissions.add(permission);
+//            }
+//        }
+//
+//        Log.d(TAG, "requestRuntimePermissions: " + !neededPermissions.isEmpty());
+//        if (!neededPermissions.isEmpty()){
+//            requestPermissions(neededPermissions.toArray(new String[0]), PERMISSION_REQUEST_CODE);
+//        }
+//        else {
+//            SharedPreferences.Editor editor = preferences.edit();
+//            editor.putBoolean(getString(R.string.persistent_notification_enabled), true);
+//            editor.apply();
+//            startForegroundService(new Intent(getApplicationContext(), SmsWatcher.class));
+//        }
+//    }
+//
+//    private boolean checkPermissions(){
+//        String[] permissions = {
+//                Manifest.permission.RECEIVE_SMS,
+//                Manifest.permission.READ_SMS,
+//                Manifest.permission.POST_NOTIFICATIONS
+//        };
+//
+//        for (String permission : permissions){
+//            if (ActivityCompat.checkSelfPermission(getApplicationContext(), permission) != PackageManager.PERMISSION_GRANTED){
+//                return false;
+//            }
+//        }
+//
+//        return true;
+//    }
+//
+//    private void launchSettings(){
+//        String[] permissions = {
+//                Manifest.permission.RECEIVE_SMS,
+//                Manifest.permission.READ_SMS,
+//                Manifest.permission.POST_NOTIFICATIONS
+//        };
+//
+//        for (String permission : permissions){
+//            if (ActivityCompat.checkSelfPermission(getApplicationContext(), permission) == PackageManager.PERMISSION_DENIED){
+//                new AlertDialog.Builder(this)
+//                        .setTitle("Permissions denied")
+//                        .setMessage("You have to enable settings manually")
+//                        .setPositiveButton("Go to settings", (dialog, which) -> {
+//                            Intent i = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+//                            i.setData(android.net.Uri.parse("package:" + getPackageName()));
+//                            startActivity(i);
+//                        })
+//                        .setNegativeButton("Cancel", (dialog, which) -> Log.d(TAG, "Permission denied!"))
+//                        .show();
+//            }
+//        }
+//    }
+//
+//
+//    @Override
+//    protected void onPostResume() {
+//        super.onPostResume();
+//        if (checkPermissions()) {
+//            binding.persistentNotificationSetting.setEnabled(true);
+//            binding.persistentNotificationSetting.setChecked(true);
+//        }
+//    }
 }

@@ -1,12 +1,16 @@
 package com.example.expensetracker.services;
 
+import static android.content.Context.MODE_PRIVATE;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.telephony.SmsMessage;
 import android.util.Log;
 
+import com.example.expensetracker.R;
 import com.example.expensetracker.repository.Repository;
 import com.example.expensetracker.repository.database.Record;
 
@@ -26,6 +30,10 @@ public class SmsReceiver extends BroadcastReceiver {
         assert bundle != null;
         String format = bundle.getString("format");
         Object[] smsObj = (Object[]) bundle.get("pdus");
+        SharedPreferences prefs = context.getSharedPreferences("Settings", MODE_PRIVATE);
+        if (!prefs.getBoolean(context.getString(R.string.persistent_notification_enabled), false)){
+            return;
+        }
 
         for (Object obj : smsObj){
             SmsMessage message = SmsMessage.createFromPdu((byte[]) obj, format);

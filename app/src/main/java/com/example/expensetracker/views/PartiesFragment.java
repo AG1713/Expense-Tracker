@@ -77,8 +77,6 @@ public class PartiesFragment extends Fragment {
         recyclerView.addItemDecoration(new DividerItemDecoration(getContext(), DividerItemDecoration.VERTICAL));
         TextView emptyView = binding.emptyTextView;
 
-        // TODO: Empty textview
-
         viewModel.getFilterMutableLiveData().observe(getViewLifecycleOwner(), filter -> viewModel.getAllPartiesWithAmount(() -> {
             // Do nothing
         }));
@@ -172,7 +170,7 @@ public class PartiesFragment extends Fragment {
                     barChart.setData(barData);
 
                     ViewGroup.LayoutParams params = barChart.getLayoutParams();
-                    params.height = chartData.getEntries().size()*175;
+                    params.height = (chartData.getEntries().size() < 7) ? chartData.getEntries().size()*175 : 500;
                     barChart.setLayoutParams(params);
 
                     XAxis xAxis = barChart.getXAxis();
@@ -207,6 +205,9 @@ public class PartiesFragment extends Fragment {
                     barChart.setDoubleTapToZoomEnabled(false);
                     barChart.getDescription().setText("0 values excluded");
                     barChart.getDescription().setTextColor(Color.WHITE);
+                    barChart.setVisibleXRangeMaximum(7);
+                    barChart.setDragEnabled(true);
+                    barChart.setNestedScrollingEnabled(true);
                     barChart.invalidate();
                 }
             }
